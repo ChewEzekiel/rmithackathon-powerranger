@@ -130,9 +130,10 @@ Once the realm is in multi-admin mode, each of these is a change request. Approv
 
 These steps run on `main` with real Tide sign-in, after steps 1 to 7 above.
 
+0. **Membership.** Admins are not room members by default. Add each admin to `/rooms/alz-biomarkers` first: they click **Request to join** in the room, then an admin uses **Propose admission** on **Governance** and the quorum signs it (in first-admin mode, before the second admin enrols, the bootstrap's own admin can do it alone). Each member signs out and in again to pick up the group.
 1. **Deposit.** Each admin signs in, opens the Alzheimer's room, clicks **Load my synthetic example** (or writes a finding) and **Encrypt & deposit**. The post is encrypted in their browser; the server stores ciphertext only.
 2. **Sealed.** **Open** / **Open all** is refused by the Tide network: no one holds the room's reader role yet, depositors included.
-3. **Rogue steward.** One admin clicks **Propose unseal: &lt;room&gt;** on **Governance** and signs it. It shows as pending at 1 of 2 signatures. **Force as operator** tries the server-side `authorize` lane with the master-admin password; TideCloak refuses it in multi-admin Tide mode and the page shows the answer.
+3. **Rogue admin.** One admin clicks **Propose unseal: &lt;room&gt;** on **Governance** and signs it. It shows as pending at 1 of 2 signatures. **Force as operator** tries the server-side `authorize` lane with the master-admin password; per Tide's IGA documentation TideCloak refuses it in multi-admin Tide mode (not observed live) and the page shows the answer.
 4. **Treaty.** A second admin approves the request in their own Tide enclave. Quorum is reached and the one change request commits, mapping `_tide_decryptor` and `room-<id>-reader` onto the room group. The other room stays sealed.
 5. **Unseal.** Each member clicks **Refresh access** (signs out and in for a fresh token), then **Open all**. The room opens for all of them.
 6. **Joining (optional).** A non-member clicks **Request to join**; an admin clicks **Propose admission** on **Governance**, and it needs the quorum like any other change.

@@ -80,13 +80,14 @@ with `thresholdT=14`, `thresholdN=20`, `homeOrkUrl=https://ork1.tideprotocol.com
 | 14:38 to 14:45 | Probing `https://ork2.tideprotocol.com/` from the Codespace: HTTP 000 after 40 s, 200 after 28 s, then `503 upstream connect error or disconnect/reset before headers ... delayed connect error: Connection refused`. ork3 and ork7 also flapped. Creating a new account needs every selected ORK to answer. |
 | ~16:05 | After ork2 recovered, the enclave refused new accounts with "max user created, contact admin" (`TIDE-ORK-VOUCHER-SUBSCRIPTION_EXCEEDED_CONCURRENT`), probably because earlier half-completed attempts used up the free-tier allowance. |
 | 16:14 and 16:18 | A fresh realm (`treatyroom`) could not be licensed: `setUpTideRealm` returned `TIDE-IDPEXT-VENDOR-KEYGEN_FAILED`. Server log: `Initialized subscription for realm treatyroom on tier free, awaiting vendor payment` then `[Midgard] FinalizeWallet failed: HttpRequestException: Response status code does not indicate success: 500 (Internal Server Error).` |
+| ~16:50 to 17:00 | On a third realm (`consortium2`, licensed on a second email the user chose), new Tide accounts could be created, but every sign-in failed inside the Tide enclave with a signature check error (`BLIND_VERIFY`), a Tide-side fault. No admin could link, so a live recording was impossible before the deadline. |
 
 Separately, the venue network intercepted TLS for `*.tideprotocol.com` (`SEC_E_UNTRUSTED_ROOT` from the laptop), so the browser reached Tide through an SSH SOCKS proxy via the Codespace.
 
 ## 7. What this does and does not prove
 
 - **Proven live:** TideCloak running the official image; realm licensed with a Tide vendor key; IGA in Tide mode; governed writes become change requests (HTTP 202); the room seal model (groups with `_tide_encryptor` only, per-room reader roles) exists in the real realm; Tide adapter config exported.
-- **Not proven live:** Tide login, enclave signing of the room policies, and `RelationshipAttestation:1` encrypt/decrypt on the Tide network. All three need an enrolled Tide account, which the outage prevented. The code paths are in `app/src/lib/tide/relationship.ts` (Tide's helper, unchanged) and `app/src/app/room/page.tsx`; the demo recording on branch `walkthrough-demo` replays the same checks with a simulation.
+- **Not proven live:** Tide login, enclave signing of the room policies, and `RelationshipAttestation:1` encrypt/decrypt on the Tide network. All three need an enrolled Tide account, which the outage prevented. Also not observed live: TideCloak refusing the master-admin `authorize` call in multi-admin mode (documented by Tide; no second admin could enrol). The code paths are in `app/src/lib/tide/relationship.ts` (Tide's helper, unchanged) and `app/src/app/room/page.tsx`; the demo recording on branch `walkthrough-demo` replays the same checks with a simulation.
 
 ## 8. Tide-only login (main)
 

@@ -16,3 +16,4 @@ data/store.json
 data/h2/
 data/walkthrough.json
 AGENTS.md
+data/*.json

@@ -36,7 +36,7 @@ Northbridge University, Helix Therapeutics and St Aurelia Hospital pool Alzheime
 
 <!-- What does your prototype demonstrate today? Describe the key interaction judges should look for. -->
 
-The video (walkthrough mode, simulating Tide's network while its nodes were down): three institutions deposit; decryption is refused. A rogue steward's early unseal stalls at 1 of 2 signatures; a second admin co-signs and the room opens for all. The Operator view shows a thief's haul, undecryptable.
+The video (walkthrough mode, simulating Tide's network while its nodes were down): three institutions deposit; decryption is refused. A rogue admin's early unseal stalls at 1 of 2 signatures; a second admin co-signs and the room opens for all. The Operator view shows a thief's haul, undecryptable.
 
 ## Demo video
 
@@ -61,10 +61,10 @@ flowchart LR
 - **Identity.** Users sign in with Tide. Tokens (and the doken that carries realm roles and groups) are threshold-signed by Tide's ORK network, so the app server can verify them but cannot forge them.
 - **Rooms.** Each room is a TideCloak group, `/rooms/<id>` (`alz-biomarkers`, `dengue-vax`). The group carries `_tide_encryptor`, so members can deposit.
 - **Room policies.** A realm admin signs two policies per room, once, in their Tide enclave (**1. Sign deposit policy**, **2. Sign reading policy**). Both use Tide's built-in `RelationshipAttestation:1` contract with the room id as the only tag. Deposit policy: subject = the group `/rooms/<id>`, role `_tide_encryptor`. Reading policy: subject = the realm role `room-<id>-reader`, role `_tide_decryptor`. Tide's decentralised nodes check the user's doken against the policy on every `doEncrypt`/`doDecrypt`.
-- **The seal.** At first nobody holds `room-<id>-reader`, depositors included, so deposits can be written but not read. The unseal is **one** IGA change request that maps both `_tide_decryptor` and `room-<id>-reader` onto the room group (Governance page, **Propose unseal: &lt;room&gt;**). Because `_tide_decryptor` is realm-wide but the reader role is per room, opening one room opens no other. Under Quorum-Enforced Governance (Tide mode) approvals are enclave signatures from each admin's own browser, and the threshold is `max(1, floor(0.7 × admins))`, which is 2 of 3. Admins can also review and sign in the **Sign in Tide console** link.
+- **The seal.** At first nobody holds `room-<id>-reader`, depositors included, so deposits can be written but not read. The unseal is **one** IGA change request that maps both `_tide_decryptor` and `room-<id>-reader` onto the room group (Governance page, **Propose unseal: &lt;room&gt;**). Because `_tide_decryptor` is realm-wide but the reader role is per room, opening one room opens no other. Under Quorum-Enforced Governance (Tide mode) approvals are enclave signatures from each admin's own browser, and the realm-wide threshold is `max(1, floor(0.7 × admins))`, which is 2 of 3 with one admin per institution. Admins can also review and sign in the **Sign in Tide console** link.
 - **Joining.** **Request to join** files a request; an admin turns it into a change request with **Propose admission**, and the quorum must sign it like any other.
-- **Members read.** After the change commits, members click **Refresh access** (signs out and in for a fresh token), then **Open** or **Open all**.
-- **Red team.** The server-side `authorize` call is refused in multi-admin Tide mode. With `DEMO_RED_TEAM=1`, realm admins see **Force as operator** on the Governance page, which tries it with the master-admin password and shows TideCloak's answer.
+- **Members read.** After the change commits, members click **Refresh access** (signs you out; sign in again for a fresh token), then **Open** or **Open all**.
+- **Red team.** Per Tide's IGA documentation the server-side `authorize` call is refused in multi-admin Tide mode (not observed live: no second admin could enrol). With `DEMO_RED_TEAM=1`, realm admins see **Force as operator** on the Governance page, which tries it with the master-admin password and shows TideCloak's answer.
 - **Host view.** The database is one JSON file (`app/data/store.json`): ciphertext, signed policies and metadata. The **Operator view** shows exactly that, and **Try to decrypt with the stolen data** shows the Tide network's refusal.
 
 Key files: `app/src/lib/rooms.ts` (rooms and the per-room reader role), `app/src/lib/tide/relationship.ts` (policy, encrypt, decrypt), `app/src/lib/kcAdmin.ts` (change-request reads and the operator red-team call), `app/src/lib/store.ts` (the ciphertext store), `app/scripts/realm.json.template` (room groups and roles), `app/scripts/init-tidecloak.sh` (realm bootstrap).
@@ -73,7 +73,7 @@ Interface: Geist and Geist Mono, zinc with an emerald accent, light and dark the
 
 ## Demo recording
 
-On 22 October Tide's public ORK nodes were down (ork2, ork3 and ork7 returned HTTP 503), so no Tide account could be created and the live flow stopped before any policy could be signed. To still show the flows, the video was recorded from branch `walkthrough-demo`, which simulates the Tide calls (sign-in, policy checks, encryption, IGA signing). A banner on every screen of the video says so.
+On 22 October Tide's public ORK nodes were down (ork2 returned HTTP 503; ork3 and ork7 also flapped), so no Tide account could be created and the live flow stopped before any policy could be signed. To still show the flows, the video was recorded from branch `walkthrough-demo`, which simulates the Tide calls (sign-in, policy checks, encryption, IGA signing). A banner on every app screen of the video, and the closing card, say so.
 
 `main` has no simulation: signing in requires a real Tide account. To reproduce the recording, run `git checkout walkthrough-demo` and follow the README on that branch.
 
@@ -83,9 +83,9 @@ The video shows walkthrough mode, but the TideCloak side ran for real on the day
 - licensed realm `consortium` with IGA in Tide mode (`iga.attestor=tide`)
 - the room seal model: groups carrying only `_tide_encryptor`, plus per-room reader roles
 - a governed write answered with HTTP 202 and a change request
-- 266 approved change requests and the exported Tide adapter config (threshold 14 of 20)
+- 266 approved change requests and the exported Tide adapter config (Tide network threshold 14 of 20 ORKs, separate from the admin quorum)
 
-It also has the timestamped Tide outage errors (ork2 503s, licence `FinalizeWallet` 500) that blocked account creation.
+It also has the timestamped Tide outage errors: the ork2 503s and free-tier voucher limit that blocked account creation, the `FinalizeWallet` 500 that blocked licensing a second realm, and the enclave sign-in failure on a third realm. A summary of the final submission checks is in [docs/evidence/submission-check.md](docs/evidence/submission-check.md).
 
 ## Setup
 
@@ -114,6 +114,8 @@ Our venue network intercepted TLS, so `registry.npmjs.org` failed; `npm install 
 - **Revocation is forward-only.** Removing a member stops future decryptions; anything they already read stays read.
 - **Admitted members can copy.** Once the room unseals, a member can export what they see.
 - **The host can delete or withhold ciphertext.** It cannot read or forge it, but it can deny service.
+- **Room policies are signed by one realm admin.** Unsealing needs the quorum, but signing a room's policy needs one admin's enclave approval, so a rogue admin who already holds `_tide_decryptor` from another room could sign an extra policy naming themselves. A production version would put policy signing behind the same quorum.
+- **The quorum is realm-wide.** It is TideCloak's admin threshold, not a per-room signatory list; "2 of 3" assumes three enrolled admins, one per institution.
 - **Two institutions can unseal over the third.** That is the agreed treaty rule (2 of 3), not a bypass.
 - **Demo only.** All data is synthetic, and TideCloak runs from the `tideorg/tidecloak-dev` development image.
 
