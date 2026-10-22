@@ -6,3 +6,5 @@ node_modules/
 tidecloak-data/
 *.log
 
+.omc/
+*.tsbuildinfo
