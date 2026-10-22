@@ -8,3 +8,5 @@ tidecloak-data/
 
 .omc/
 *.tsbuildinfo
+video/cache/
+video/bin/
