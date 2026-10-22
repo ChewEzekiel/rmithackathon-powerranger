@@ -5,7 +5,10 @@
     python -I -X utf8 video/make_video.py --selftest
 
 Every frame is drawn with Pillow (in parallel worker processes) and piped to ffmpeg as raw RGB.
-Narration is offline Windows TTS, cached in video/cache/tts by voice+rate+text.
+Narration: Microsoft neural voices via edge-tts, generated inside the GitHub Codespace (one ssh call for all
+missing lines; this laptop's network intercepts TLS) and cached in video/cache/voice by voice+rate+text.
+If that fails, it falls back to offline Windows System.Speech (TTS_ENGINE=sapi forces it).
+A soft synthesized pad plays under the voice, ducked while it speaks (MUSIC=0 turns it off).
 
 Scene fields:
   id           unique name
@@ -24,9 +27,12 @@ Scene fields:
                "color" (accent|violet|green|amber|red|white, default violet)}]
   clip         optional: a video file (relative to the storyboard) composited full-frame under the
                captions, e.g. a Blender hero shot; "clip_at" = seconds into the scene it starts (default 0)
-Env overrides: FFMPEG (path), TTS_VOICE, TTS_RATE (-10..10), WORKERS (render processes).
+Env overrides: FFMPEG (path), WORKERS (render processes), MUSIC (0 = no pad),
+  TTS_ENGINE (edge | sapi), VOICE (edge voice, default en-US-AndrewMultilingualNeural; also good:
+  en-US-AvaMultilingualNeural, en-US-BrianMultilingualNeural, en-GB-RyanNeural), TTS_RATE (edge "+6%", sapi -10..10),
+  CODESPACE (codespace name used for edge-tts), TTS_VOICE (exact System.Speech voice name).
 """
-import bisect, hashlib, json, math, os, random, re, shutil, subprocess, sys, time, wave
+import bisect, hashlib, json, math, os, random, re, shutil, subprocess, sys, tarfile, time, wave
 from functools import lru_cache
 from multiprocessing import Pool
 from pathlib import Path
@@ -36,7 +42,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent
 CACHE, OUT_DIR = ROOT / "cache", ROOT / "out"
-OUT_FILE = OUT_DIR / "video.mp4"
 W, H, FPS = 1920, 1080, 30
 PAD, FADE_F = 0.4, 12            # seconds of air after narration; crossfade length in frames (0.4 s)
 CAP_W = W - 300
@@ -58,6 +63,25 @@ $s.SelectVoice($env:TTS_VOICE); $s.Rate = [int]$env:TTS_RATE
 $fmt = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo 22050, ([System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen), ([System.Speech.AudioFormat.AudioChannel]::Mono)
 foreach ($j in (Get-Content -Raw -Encoding UTF8 $env:TTS_JOBS | ConvertFrom-Json)) { $s.SetOutputToWaveFile($j.out, $fmt); $s.Speak($j.text) }
 $s.Dispose()"""
+EDGE_VOICE, EDGE_RATE = "en-US-AndrewMultilingualNeural", "+6%"
+CODESPACE = "expert-bassoon-pjqwwq7jrjwwcrv5"
+SAY = {"TideCloak": "Tide Cloak", "PowerRanger": "Power Ranger"}  # spoken spelling; captions keep the brand
+EDGE_SH = """set -e
+pip install -q edge-tts >/dev/null 2>&1 || pip install -q --user edge-tts >/dev/null
+rm -rf /tmp/treaty-voice && mkdir -p /tmp/treaty-voice && cd /tmp/treaty-voice
+python3 - <<'PY'
+import asyncio, json, edge_tts
+JOBS, VOICE, RATE = json.loads(%r), %r, %r
+async def main():
+    for j in JOBS:
+        await edge_tts.Communicate(j["text"], VOICE, rate=RATE).save(j["name"])
+asyncio.run(main())
+PY
+tar cf all.tar *.mp3
+"""
+# seconds each animation needs; a shorter scene plays its animation proportionally faster
+DESIGN = {"hook": 12.4, "constraint": 12.6, "solution": 11.8, "host-view": 11.6, "rogue-steward": 13.0,
+          "unseal": 10.6, "why-tidecloak": 15.4, "close": 7.5}
 
 
 # ---------------------------------------------------------------- text + easing helpers
@@ -916,6 +940,10 @@ def m_close(img, d, sc, t, T):
     fu = eo(seg(t, 5.6, 6.3))
     text(d, (cx, 850 + 10 * (1 - fu)), "Sunway PowerRanger  \u00b7  Built with TideCloak  \u00b7  All data synthetic",
          30, MUTED, "s", fu, "mm")
+    if sc.get("note"):
+        nu = eo(seg(t, 3.0, 3.6))
+        for j, ln in enumerate(balanced(sc["note"], F(26, "s"), 1500)):
+            text(d, (cx, 935 + 38 * j), ln, 26, AMBER, "s", nu, "mm")
 
 
 @lru_cache(4)
@@ -980,27 +1008,98 @@ def m_image(img, d, sc, t, T):
             d.text((lx + 16, ly + 23 + oy), c["label"], font=f, fill=rgba(INK, u), anchor="lm")
 
 
+def shade(d, y0, y1, a):
+    """Vertical dark gradient band (transparent at y0, opaque-ish at y1) so text reads over footage."""
+    n = 24
+    for j in range(n):
+        ya, yb = lerp(y0, y1, j / n), lerp(y0, y1, (j + 1) / n)
+        d.rectangle((0, min(ya, yb), W, max(ya, yb)), fill=(6, 7, 20, round(190 * a * (j + 1) / n)))
+
+
+def m_title(img, d, sc, t, T):  # big centred title over a clip
+    shade(d, 560, 860, eo(seg(t, 0.2, 0.9)))
+    d.rectangle((0, 860, W, H), fill=(6, 7, 20, round(190 * eo(seg(t, 0.2, 0.9)))))
+    words_in(d, sc.get("title", ""), 120, W / 2, 770, t, 0.5, center=True, stagger=0.15, dur=0.6)
+    if sc.get("subtitle"):
+        words_in(d, sc["subtitle"], 46, W / 2, 925, t, 1.2, c=SUB, w="s", center=True, stagger=0.07)
+
+
+def m_header(img, d, sc, t, T):  # kicker + title, top-left, over a clip
+    shade(d, 300, 0, eo(seg(t, 0.0, 0.6)))
+    header(d, sc, t)
+
+
 MOTIONS = {"hook": m_hook, "constraint": m_constraint, "solution": m_solution, "host-view": m_host_view,
-           "rogue-steward": m_rogue, "unseal": m_unseal, "why-tidecloak": m_why, "close": m_close, "image": m_image}
+           "rogue-steward": m_rogue, "unseal": m_unseal, "why-tidecloak": m_why, "close": m_close, "image": m_image,
+           "title": m_title, "header": m_header, "clip": lambda *a: None}
 
 
-# ---------------------------------------------------------------- optional video clips (e.g. Blender hero shots)
-@lru_cache(2)
-def clip_frames(path):
-    """Decode a clip to 1920x1080 RGB frames (kept in memory; clips are short)."""
-    r = subprocess.run([find_ffmpeg(), "-v", "error", "-i", path, "-vf", f"scale={W}:{H},fps={FPS}", "-f", "rawvideo",
-                        "-pix_fmt", "rgb24", "-"], capture_output=True, check=True)
-    n = len(r.stdout) // (W * H * 3)
-    return [r.stdout[i * W * H * 3:(i + 1) * W * H * 3] for i in range(n)]
+# ---------------------------------------------------------------- video clips (screen recordings, Blender shots)
+def probe_dur(path):
+    r = subprocess.run([find_ffmpeg(), "-hide_banner", "-i", path], capture_output=True, text=True, errors="replace")
+    m = re.search(r"Duration: (\d+):(\d+):([\d.]+)", r.stderr)
+    if not m:
+        sys.exit(f"cannot read duration of {path}")
+    return int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3])
+
+
+def fit_speed(free, room):
+    """Common speed for the un-pinned segments: fill `room` seconds, but stay within 0.8x..2.2x."""
+    return min(max(free / max(room, 0.1), 0.8), 2.2)
+
+
+def prepare_clip(sc, n_target):
+    """Trim + speed-fit the scene's clip segments to n_target frames, cached as a JPEG sequence.
+    Too short even at 0.8x: the last frame holds. Too long even at 2.2x: the start is dropped (results come last)."""
+    segs = [(s["_src"], float(s.get("in", 0)), float(s.get("out") or probe_dur(s["_src"])), s.get("speed"))
+            for s in sc["_segs"]]
+    fixed = sum((b - a) / sp for _, a, b, sp in segs if sp)
+    free = sum(b - a for _, a, b, sp in segs if not sp)
+    speed = fit_speed(free, n_target / FPS - fixed) if free else 1.0
+    z = sc.get("clip_scale", 1.0)  # < 1: top-aligned and shrunk, leaving a band for captions below
+    sw, sh = round(W * z) // 2 * 2, round(H * z) // 2 * 2
+    key = hashlib.sha1(json.dumps([segs, speed, z, [os.path.getmtime(s[0]) for s in segs]]).encode()).hexdigest()[:16]
+    d = CACHE / "clips" / key
+    if not (d / "done").exists():
+        shutil.rmtree(d, ignore_errors=True)
+        d.mkdir(parents=True)
+        args, graph = [find_ffmpeg(), "-v", "error", "-y"], []
+        for i, (src, a, b, sp) in enumerate(segs):
+            args += ["-i", src]
+            graph.append(f"[{i}:v]trim=start={a}:end={b},setpts=(PTS-STARTPTS)/{sp or speed},fps={FPS},"
+                         f"scale={sw}:{sh}:force_original_aspect_ratio=decrease,"
+                         f"pad={W}:{H}:(ow-iw)/2:{0 if z < 1 else '(oh-ih)/2'}:color=0x090a1c,setsar=1[s{i}]")
+        graph.append("".join(f"[s{i}]" for i in range(len(segs))) + f"concat=n={len(segs)}:v=1:a=0[v]")
+        subprocess.run(args + ["-filter_complex", ";".join(graph), "-map", "[v]", "-q:v", "3", str(d / "%05d.jpg")],
+                       check=True)
+        (d / "done").write_text("ok")
+    files = sorted(str(p) for p in d.glob("*.jpg"))
+    print(f"  clip {sc['id']:<10} {free + sum(b - a for _, a, b, sp in segs if sp):5.1f}s source, free segments at "
+          f"{speed:.2f}x -> {len(files) / FPS:.1f}s for {n_target / FPS:.1f}s"
+          + ("  (start dropped)" if len(files) > n_target else ""))
+    return files[-n_target:] if len(files) > n_target else files
 
 
 def m_clip(img, sc, t):
-    frames = clip_frames(sc["_clip"])
-    k = round((t - sc.get("clip_at", 0)) * FPS)
-    if 0 <= k:
-        f = Image.frombytes("RGB", (W, H), frames[min(k, len(frames) - 1)])
-        a = eo(seg(t, sc.get("clip_at", 0), sc.get("clip_at", 0) + 0.4))
+    files, at = sc["_clipframes"], sc.get("clip_at", 0)
+    k = round((t - at) * FPS)
+    if k >= 0 and files:
+        f = Image.open(files[min(k, len(files) - 1)]).convert("RGB")
+        a = eo(seg(t, at, at + 0.4)) if at > 0 else 1.0
         img.paste(f if a >= 1 else Image.blend(img, f, a))
+
+
+def corner_tag(d, s):
+    """Compact tag in the top-left margin; "Head: rest" is drawn as two lines."""
+    head, _, rest = s.partition(": ")
+    f1, f2 = F(15, "b"), F(19, "s")
+    w = max(f1.getlength(head.upper()), f2.getlength(rest)) + 44
+    d.rounded_rectangle((18, 18, 18 + w, 76 if rest else 52), radius=12, fill=(8, 9, 26, 220),
+                        outline=rgba(AMBER, .75), width=2)
+    d.ellipse((32, 31, 42, 41), fill=AMBER)
+    d.text((50, 36), head.upper(), font=f1, fill=AMBER, anchor="lm")
+    if rest:
+        d.text((32, 60), rest, font=f2, fill=WHITE, anchor="lm")
 
 
 # ---------------------------------------------------------------- frame assembly
@@ -1016,12 +1115,15 @@ def scene_frame(ctx, i, k):
     sc = ctx["scenes"][i]
     t, T = k / FPS, ctx["frames"][i] / FPS
     img, d = background((ctx["starts"][i] + k) / FPS)
-    if sc.get("_clip"):
+    clip = "_clipframes" in sc
+    if clip:
         m_clip(img, sc, t)
-    if not sc.get("_clip") or sc.get("clip_overlay", False):
-        MOTIONS[sc["_motion"]](img, d, sc, t, T)
-    if sc["_motion"] != "close":
+    if not clip or sc.get("clip_overlay", False):
+        MOTIONS[sc["_motion"]](img, d, sc, t * max(1.0, DESIGN.get(sc["_motion"], 0) / T), T)
+    if sc["_motion"] != "close" and not clip:
         text(d, (W - 90, 100), "TREATY ROOM", 22, MUTED, "s", 0.9, "ra")
+    if sc.get("tag"):
+        corner_tag(d, sc["tag"])
     caps = [c for c in sc["_caps"] if c[0] <= k]
     if caps:
         pill(d, caps[-1][1], t, caps[-1][0] / FPS, 0.45 if len(caps) == 1 else 0.2)
@@ -1087,18 +1189,91 @@ def find_ffmpeg():
     sys.exit("ffmpeg not found: put ffmpeg.exe in video/bin/ or set FFMPEG")
 
 
+def sapi_lines(texts):
+    voice, rate = pick_voice(), int(os.environ.get("TTS_RATE", "0"))
+    print(f"voice:  {voice} (System.Speech, rate {rate})")
+    (CACHE / "tts").mkdir(parents=True, exist_ok=True)
+    wavs = [CACHE / "tts" / f"{hashlib.sha1(f'{voice}|{rate}|{t}'.encode()).hexdigest()[:16]}.wav" if t else None
+            for t in texts]
+    synth([{"text": t, "out": str(p)} for t, p in zip(texts, wavs) if p and not p.exists()], voice, rate)
+    return wavs
+
+
+def gh(*args):
+    r = subprocess.run(["gh", "codespace", *args], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       timeout=600)
+    if r.returncode:
+        raise RuntimeError(f"gh codespace {args[0]} failed: {r.stderr.strip()[-400:]}")
+
+
+def edge_lines(texts):
+    voice, rate = os.environ.get("VOICE", EDGE_VOICE), os.environ.get("TTS_RATE", EDGE_RATE)
+    cs = os.environ.get("CODESPACE", CODESPACE)
+    print(f"voice:  {voice} (edge-tts, rate {rate})")
+    vd = CACHE / "voice"
+    vd.mkdir(parents=True, exist_ok=True)
+    said = list(texts)
+    for a, b in SAY.items():
+        said = [t.replace(a, b) for t in said]
+    keys = [hashlib.sha1(f"edge|{voice}|{rate}|{t}".encode()).hexdigest()[:16] if t else None for t in said]
+    todo = {k: t for k, t in zip(keys, said) if k and not (vd / f"{k}.wav").exists()}
+    if todo:
+        print(f"edge-tts: {len(todo)} line(s) via codespace {cs}...")
+        sh = vd / "edge_jobs.sh"
+        sh.write_bytes((EDGE_SH % (json.dumps([{"text": t, "name": f"{k}.mp3"} for k, t in todo.items()]), voice, rate))
+                       .encode())
+        gh("cp", "-c", cs, str(sh), "remote:/tmp/treaty-voice.sh")
+        gh("ssh", "-c", cs, "--", "bash /tmp/treaty-voice.sh")
+        gh("cp", "-c", cs, "remote:/tmp/treaty-voice/all.tar", str(vd / "all.tar"))
+        with tarfile.open(vd / "all.tar") as tf:
+            tf.extractall(vd, members=[m for m in tf.getmembers() if m.name.removesuffix(".mp3") in todo], filter="data")
+        for k in todo:  # decode once so durations can be read with the wave module
+            subprocess.run([find_ffmpeg(), "-v", "error", "-y", "-i", str(vd / f"{k}.mp3"), "-ac", "1", "-ar", "24000",
+                            str(vd / f"{k}.wav")], check=True)
+    return [vd / f"{k}.wav" if k else None for k in keys]
+
+
+def narrate(texts):
+    if os.environ.get("TTS_ENGINE", "edge").lower() == "edge":
+        try:
+            return edge_lines(texts)
+        except Exception as e:  # ponytail: whole-run fallback, so one video never mixes two voices
+            print(f"WARNING: edge-tts failed ({e}); falling back to System.Speech")
+    return sapi_lines(texts)
+
+
+def make_music(path, seconds, sr=48000):
+    """Soft evolving pad: Am-F-C-G, two layers crossfading every 4 s (sin^2 + cos^2 = constant level)."""
+    t = np.arange(int(seconds * sr)) / sr
+    chords = np.array([(110.0, 220.0, 261.63, 329.63), (87.31, 174.61, 220.0, 261.63),
+                       (130.81, 196.0, 261.63, 329.63), (98.0, 196.0, 246.94, 293.66)])
+    out, L = np.zeros((len(t), 2)), 8.0
+    for off in (0.0, L / 2):
+        idx = (np.floor((t + off) / L).astype(int)) % 4
+        env = np.sin(np.pi * ((t + off) % L) / L) ** 2  # zero exactly where the chord changes: no clicks
+        for n in range(4):
+            f = chords[idx, n]
+            for det, pan in ((1.0, 0.3), (1.0035, 0.7)):
+                s = np.sin(2 * np.pi * f * det * t) * env * (0.45 if n == 0 else 0.25 / (1 + n * 0.3))
+                out[:, 0] += s * (1 - pan)
+                out[:, 1] += s * pan
+    out *= (0.85 + 0.15 * np.sin(2 * np.pi * 0.07 * t))[:, None]
+    fade = np.minimum(1, np.minimum(t / 2.5, (seconds - t) / 3.5)).clip(0)[:, None]
+    out = out * fade / np.abs(out).max() * 10 ** (-12 / 20)
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes((out * 32767).astype("<i2").tobytes())
+
+
 def plan(sb):
     """Storyboard -> render context (scene timing, captions) + narration wavs."""
     scenes = json.loads(sb.read_text(encoding="utf-8"))
     ids = [sc.get("id") or f"scene{i + 1}" for i, sc in enumerate(scenes)]
     assert len(set(ids)) == len(ids), f"duplicate scene ids: {ids}"
-    voice, rate = pick_voice(), int(os.environ.get("TTS_RATE", "0"))
-    print(f"voice:  {voice} (rate {rate})")
-    (CACHE / "tts").mkdir(parents=True, exist_ok=True)
     texts = [(sc.get("narration") or "").strip() for sc in scenes]
-    wavs = [CACHE / "tts" / f"{hashlib.sha1(f'{voice}|{rate}|{t}'.encode()).hexdigest()[:16]}.wav" if t else None
-            for t in texts]
-    synth([{"text": t, "out": str(p)} for t, p in zip(texts, wavs) if p and not p.exists()], voice, rate)
+    wavs = narrate(texts)
     speech = []
     for p in wavs:
         if p:
@@ -1110,15 +1285,22 @@ def plan(sb):
     cap_font = F(40, "s")
     for sc, sid, txt, sp, nf in zip(scenes, ids, texts, speech, frames):
         sc["id"] = sid
-        sc["_motion"] = sc.get("motion") or ("image" if sc.get("image") else sid)
+        sc["_motion"] = sc.get("motion") or ("image" if sc.get("image") else "clip" if sc.get("clip") else sid)
         if sc["_motion"] not in MOTIONS:
             sys.exit(f"scene {sid}: unknown motion {sc['_motion']!r}; one of {', '.join(MOTIONS)}")
-        for key, field in (("_path", "image"), ("_clip", "clip")):
-            if sc.get(field):
-                p = (sb.parent / sc[field]).resolve()
-                if not p.exists():
-                    sys.exit(f"scene {sid}: {field} not found: {p}")
-                sc[key] = str(p)
+        if sc.get("image"):
+            sc["_path"] = str((sb.parent / sc["image"]).resolve())
+        clip = sc.get("clip")
+        if clip:  # "clip": "a.mp4" (+ clip_in/clip_out), or a list of {"src", "in", "out", "speed"} segments
+            sc["_segs"] = [{"src": clip, "in": sc.get("clip_in", 0), "out": sc.get("clip_out")}] \
+                if isinstance(clip, str) else [dict(s) for s in clip]
+            for s in sc["_segs"]:
+                s["_src"] = str((sb.parent / s["src"]).resolve())
+        for p in [sc.get("_path")] + [s["_src"] for s in sc.get("_segs", [])]:
+            if p and not Path(p).exists():
+                sys.exit(f"scene {sid}: file not found: {p}")
+        if sc.get("_segs"):
+            sc["_clipframes"] = prepare_clip(sc, nf - round(sc.get("clip_at", 0) * FPS) - round(sc.get("clip_hold", 0) * FPS))
         if sc["_motion"] == "image" and not sc.get("_path"):
             sys.exit(f"scene {sid}: motion 'image' needs an image")
         caps = sc.get("caption")
@@ -1144,8 +1326,17 @@ def build_audio(ff, wavs, frames):
             n_in += 1
         else:
             graph.append(f"anullsrc=r=48000:cl=mono:d={dur:.6f}[a{i}]")
-    graph.append("".join(f"[a{i}]" for i in range(len(frames))) + f"concat=n={len(frames)}:v=0:a=1,"
-                 "loudnorm=I=-16:TP=-1.5:LRA=11,aformat=sample_rates=48000:channel_layouts=stereo[a]")
+    vo = "".join(f"[a{i}]" for i in range(len(frames))) + f"concat=n={len(frames)}:v=0:a=1," \
+         "loudnorm=I=-16:TP=-1.5:LRA=11,aformat=sample_rates=48000:channel_layouts=stereo"
+    if os.environ.get("MUSIC", "1") == "0":
+        graph.append(vo + "[a]")
+    else:  # pad about 20 dB under the voice, ducked a further ~6 dB while the voice speaks
+        make_music(CACHE / "music.wav", sum(frames) / FPS)
+        args += ["-i", str(CACHE / "music.wav")]
+        graph += [vo + ",asplit[v1][v2]",
+                  f"[{n_in}:a]lowpass=f=1400,volume=-17dB[m]",
+                  "[m][v2]sidechaincompress=threshold=0.02:ratio=4:attack=60:release=700:makeup=1[md]",
+                  "[v1][md]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89[a]"]
     subprocess.run(args + ["-filter_complex", ";".join(graph), "-map", "[a]", "-c:a", "pcm_s16le", str(out)], check=True)
     return out
 
@@ -1154,14 +1345,15 @@ def main(sb):
     ff = find_ffmpeg()
     ctx, wavs = plan(sb)
     audio = build_audio(ff, wavs, ctx["frames"])
-    OUT_FILE.parent.mkdir(exist_ok=True)
+    out_file = OUT_DIR / f"video{sb.stem.removeprefix('storyboard')}.mp4"
+    out_file.parent.mkdir(exist_ok=True)
     total, workers = ctx["total"], int(os.environ.get("WORKERS", max(1, (os.cpu_count() or 2) - 2)))
     print(f"rendering {total} frames ({total / FPS:.1f}s) with {workers} workers...")
     args = [ff, "-y", "-hide_banner", "-loglevel", "error", "-stats",
             "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-framerate", str(FPS), "-i", "-",
             "-i", str(audio), "-map", "0:v", "-map", "1:a",
             "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-tune", "animation", "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(OUT_FILE)]
+            "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(out_file)]
     t0 = time.time()
     enc = subprocess.Popen(args, stdin=subprocess.PIPE)
     try:
@@ -1177,8 +1369,8 @@ def main(sb):
     for sc, f in zip(ctx["scenes"], ctx["frames"]):
         print(f"  {sc['id']:<18} {int(t // 60)}:{t % 60:05.2f}  {f / FPS:5.2f}s  [{sc['_motion']}]")
         t += f / FPS
-    size = OUT_FILE.stat().st_size / 1e6
-    print(f"{OUT_FILE}\nduration {int(t // 60)}:{t % 60:05.2f} ({t:.1f}s), size {size:.1f} MB, "
+    size = out_file.stat().st_size / 1e6
+    print(f"{out_file}\nduration {int(t // 60)}:{t % 60:05.2f} ({t:.1f}s), size {size:.1f} MB, "
           f"render {time.time() - t0:.0f}s")
     if t > 120:
         print(f"WARNING: {t:.1f}s is over 120s")
@@ -1214,6 +1406,17 @@ if __name__ == "__main__":
         assert eo(0) == 0 and eo(1) == 1 and eio(0.5) == 0.5 and abs(back(0)) < 1e-9 and abs(back(1) - 1) < 1e-9
         assert back(0.7) > 1  # overshoot
         print("selftest ok")
+    elif argv[:1] == ["--voice"]:  # narration only (no clips needed): generate + print durations
+        p = Path(argv[1]).resolve() if len(argv) > 1 else ROOT / "storyboard.json"
+        scs = json.loads(p.read_text(encoding="utf-8"))
+        tot = 0
+        for sc, wv in zip(scs, narrate([(s.get("narration") or "").strip() for s in scs])):
+            with wave.open(str(wv)) as w:
+                s = w.getnframes() / w.getframerate()
+            n = max(sc.get("min_seconds") or 0, s + PAD)
+            tot += n
+            print(f"  {sc['id']:<10} speech {s:5.2f}s  scene {n:5.2f}s")
+        print(f"total {tot:.1f}s")
     elif argv[:1] == ["--stills"]:
         stills(Path(argv[1]).resolve() if len(argv) > 1 else ROOT / "storyboard.json")
     else:

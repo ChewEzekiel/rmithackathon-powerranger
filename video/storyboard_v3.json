@@ -1,0 +1,134 @@
+[
+  {
+    "id": "intro",
+    "clip": "blender/sealed_deposit.mp4",
+    "motion": "title",
+    "clip_overlay": true,
+    "title": "Treaty Room",
+    "subtitle": "A sealed research room no one owns",
+    "narration": "What if rival labs could pool their unpublished results, without trusting anyone to hold them? Meet Treaty Room.",
+    "min_seconds": 7
+  },
+  {
+    "id": "signin",
+    "clip": "rec/01-signin.mp4",
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "Signs in with Tide. No password ever reaches our server.",
+    "narration": "Dr Mei Lee runs an Alzheimer's lab at Northbridge University. She signs in with Tide. No password ever lands on our server.",
+    "clip_scale": 0.86,
+    "clip_in": 2.5,
+    "clip_hold": 1.0,
+    "min_seconds": 9
+  },
+  {
+    "id": "deposit",
+    "clip": "rec/02-seal-and-deposit.mp4",
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "Encrypted in her browser before it's stored.",
+    "narration": "She opens the consortium room, signs its access policy once in her Tide enclave, and deposits a failed drug result. It's encrypted right in her browser.",
+    "clip_scale": 0.86,
+    "clip_in": 1.8,
+    "clip_hold": 1.2,
+    "min_seconds": 12
+  },
+  {
+    "id": "sealed",
+    "clip": "rec/03-sealed-for-everyone.mp4",
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "Refused. Even her own deposit stays sealed.",
+    "narration": "Helix and St Aurelia deposit too. Now watch: Mei tries to open the room. Refused. Even her own deposit stays sealed.",
+    "clip_scale": 0.86,
+    "min_seconds": 9
+  },
+  {
+    "id": "operator",
+    "clip": "rec/04-operator-view.mp4",
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "The host sees only ciphertext. The network says no.",
+    "narration": "Here's everything we, the host, can see. Ciphertext. Steal the whole database, try to decrypt it, and the network says no.",
+    "clip_scale": 0.86,
+    "clip_in": 1.9,
+    "min_seconds": 9.5
+  },
+  {
+    "id": "rogue",
+    "clip": [
+      {
+        "src": "rec/05-rogue-steward.mp4",
+        "in": 6.0
+      },
+      {
+        "src": "rec/06-still-sealed.mp4",
+        "in": 0,
+        "out": 1.0,
+        "speed": 0.8
+      },
+      {
+        "src": "rec/06-still-sealed.mp4",
+        "in": 3.0
+      }
+    ],
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "One admin signs: 1 of 2. Stuck. Even the master admin can't force it.",
+    "narration": "Now an insider. Helix's admin proposes unsealing the room and signs it himself. One of two. Stuck. Even our master admin key can't force it.",
+    "clip_scale": 0.86,
+    "clip_hold": 1.0,
+    "min_seconds": 13
+  },
+  {
+    "id": "treaty",
+    "clip": [
+      {
+        "src": "rec/07-treaty-cosign.mp4",
+        "in": 1.9
+      },
+      {
+        "src": "rec/07-treaty-cosign.mp4",
+        "in": 6.95,
+        "out": 7.13,
+        "speed": 0.12
+      },
+      {
+        "src": "blender/vault_unseal.mp4",
+        "speed": 1.5
+      }
+    ],
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "Second institution co-signs: 2 of 3. Quorum. The room opens.",
+    "narration": "St Aurelia's admin reviews it and co-signs in her own enclave. Two of three. Quorum. The treaty opens the room.",
+    "clip_scale": 0.86,
+    "min_seconds": 10.5
+  },
+  {
+    "id": "open",
+    "clip": "rec/08-room-opens.mp4",
+    "tag": "Walkthrough mode: Tide calls simulated",
+    "caption": "Everyone's results open at the same moment.",
+    "narration": "Back to Mei: everyone's results open at the same moment. Nobody went first, nobody got scooped.",
+    "clip_scale": 0.86,
+    "clip_in": 0.8,
+    "clip_hold": 1.5,
+    "min_seconds": 8
+  },
+  {
+    "id": "why",
+    "clip": "blender/ork_ring.mp4",
+    "motion": "header",
+    "clip_overlay": true,
+    "kicker": "Why TideCloak",
+    "title": "No single party holds the key",
+    "caption": [
+      "The key never exists in one piece.",
+      "Every request is checked. Access changes only with a quorum of enclave signatures."
+    ],
+    "narration": "Why TideCloak? The key never exists in one piece. Tide's nodes check every request, and access changes only with a quorum of enclave signatures."
+  },
+  {
+    "id": "close",
+    "motion": "close",
+    "subtitle": "We built it, and we can't read it or open it alone.",
+    "note": "This walkthrough simulates the Tide network calls, because Tide's public nodes were down while we recorded. The live code is in the repo.",
+    "narration": "Treaty Room, by Team Sunway PowerRanger. This walkthrough simulates the Tide network calls, because Tide's public nodes were down while we recorded. The live code is in the repo.",
+    "min_seconds": 9
+  }
+]
