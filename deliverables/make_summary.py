@@ -58,9 +58,9 @@ meta.add_run("Sunway PowerRanger (judged in Malaysia)    ")
 meta.add_run("Event: ").bold = True
 meta.add_run("RMIT x Tide UNLOCKED, Challenge 2\n")
 meta.add_run("Repository: ").bold = True
-meta.add_run("https://github.com/ChewEzekiel/rmithackathon-powerranger    ")
+meta.add_run("https://github.com/ChewEzekiel/treaty-room    ")
 meta.add_run("Demo video: ").bold = True
-meta.add_run("demo/video.mp4")
+meta.add_run("demo/video.mp4 (recorded in walkthrough mode, see below)")
 
 h("Problem")
 p(
@@ -87,9 +87,9 @@ h("Solution")
 p(
     "Treaty Room is a sealed room for a consortium. Each member's deposit is encrypted in their own browser to the "
     "room. The host's database holds only ciphertext and metadata. The room is sealed: even depositors cannot open "
-    "it. It unseals for every member at the same moment, and only when 2 of 3 institution admins co-sign a TideCloak "
-    "change request: the \"treaty\". A rogue steward who grants himself early read access stalls at 1 of 2 "
-    "approvals. Joining a room is likewise a governed change request."
+    "it. It unseals for every member at the same moment, and only when 2 of 3 institution admins co-sign one "
+    "TideCloak change request: the \"treaty\". A rogue steward who proposes early access stalls at 1 of 2 "
+    "signatures. Joining a room is likewise a governed change request."
 )
 p("The prototype runs two synthetic rooms:")
 bullets([
@@ -104,18 +104,20 @@ p("TideCloak is what makes the seal real rather than a promise in our code:")
 bullets([
     "Login via Tide.| We store no passwords. Tokens are threshold-signed by Tide's ORK network, so our server can "
     "verify them but cannot mint them.",
-    "Network-enforced room policy.| Each room has a policy under Tide's built-in RelationshipAttestation:1 "
-    "contract, signed once by a realm admin in their Tide enclave. It names the room's group (/rooms/<id>) and uses "
-    "the room id as the only tag. On every encrypt and decrypt, Tide's decentralised nodes check the user's doken "
-    "for group membership and the realm role _tide_encryptor (write) or _tide_decryptor (read). Plaintext never "
-    "exists on our server.",
-    "Quorum-governed seal.| Members get _tide_encryptor through the room group. _tide_decryptor is the seal: it is "
-    "mapped onto the group only by an IGA change request under Quorum-Enforced Governance (Tide mode). Approvals are "
-    "enclave signatures from each admin's own browser, with threshold max(1, floor(0.7 x admins)), which is 2 of 3. "
-    "The server-side \"authorize\" call is refused in multi-admin Tide mode, so the host cannot approve on anyone's "
-    "behalf.",
-    "Visible proof.| The Operator view shows everything the host or a database thief holds, and a \"Try to decrypt "
-    "with the stolen data\" button shows the Tide network's refusal.",
+    "Two network-enforced policies per room.| A realm admin signs both once, in their Tide enclave (\"1. Sign "
+    "deposit policy\" and \"2. Sign reading policy\"), under Tide's built-in RelationshipAttestation:1 contract with "
+    "the room id as the only tag. Deposit policy: subject = group /rooms/<id>, role _tide_encryptor. Reading "
+    "policy: subject = realm role room-<id>-reader, role _tide_decryptor. On every encrypt and decrypt, Tide's "
+    "decentralised nodes check the user's doken against the policy. Plaintext never exists on our server.",
+    "Quorum-governed seal.| Members get _tide_encryptor through the room group. Nobody holds room-<id>-reader at "
+    "first. The unseal is one IGA change request (\"Propose unseal: <room>\") that maps both _tide_decryptor and "
+    "room-<id>-reader onto the room group, under Quorum-Enforced Governance (Tide mode). Because the reader role is "
+    "per room, opening one room opens no other. Approvals are enclave signatures from each admin's own browser, "
+    "with threshold max(1, floor(0.7 x admins)), which is 2 of 3. The server-side \"authorize\" call is refused in "
+    "multi-admin Tide mode, so the host cannot approve on anyone's behalf.",
+    "Visible proof.| The Operator view shows everything the host or a database thief holds, and \"Try to decrypt "
+    "with the stolen data\" shows the Tide network's refusal. \"Force as operator\" (realm admins, only with "
+    "DEMO_RED_TEAM=1) shows TideCloak refusing a master-admin approval.",
 ])
 p(
     "With ordinary login and backend permissions, the host's administrator could flip a database flag and read "
@@ -125,17 +127,37 @@ p(
 
 h("Demo walkthrough")
 bullets([
-    "Deposit.| Admins from the three institutions sign in with Tide and post findings with Encrypt & post. The "
-    "server stores ciphertext only.",
-    "Sealed.| Decrypt thread is refused by the Tide network: no one holds _tide_decryptor yet, depositors included.",
-    "Rogue steward.| One admin files a change request for early read access. Governance shows it pending at 1 of 2. "
-    "Force as operator tries the server-side authorise lane with the master-admin password; TideCloak refuses.",
-    "Treaty.| A second admin approves in their own Tide enclave. Quorum is reached, the change commits and "
-    "_tide_decryptor is mapped onto the room group.",
-    "Unseal.| Members sign out and in to refresh their token, and the thread decrypts for all of them at once.",
+    "Deposit.| Admins from the three institutions sign in, click \"Load my synthetic example\" and \"Encrypt & "
+    "deposit\". The server stores ciphertext only.",
+    "Sealed.| \"Open\" / \"Open all\" is refused by the Tide network: no one holds the room's reader role yet, "
+    "depositors included.",
+    "Rogue steward.| One admin files \"Propose unseal\" on Governance and signs it; it waits at 1 of 2. \"Force as "
+    "operator\" tries the server-side authorize lane with the master-admin password; TideCloak refuses.",
+    "Treaty.| A second admin signs in their own enclave. Quorum is reached and the change commits, mapping "
+    "_tide_decryptor and room-<id>-reader onto that room's group only.",
+    "Unseal.| Members click \"Refresh access\" for a fresh token, then \"Open all\": the room opens for all of them.",
     "Operator view.| The raw database file (ciphertext, signed policies, metadata) and the network's refusal to "
     "decrypt it.",
 ], style="List Number")
+
+h("Walkthrough mode and the demo video")
+p(
+    "On 22 October, Tide's public ORK network had nodes down (ork2, ork3 and ork7 returned HTTP 503). Creating a new "
+    "Tide account needs every selected ORK, so nobody could enrol, and the live flow stops before any policy can be "
+    "signed. Our live setup worked up to that step: TideCloak running, realm created and licensed, IGA enabled and "
+    "the adapter config exported. The steps after enrolment could not be run against the live network that day."
+)
+p(
+    "So the screens and flows could still be shown, we added a walkthrough mode. Running "
+    "NEXT_PUBLIC_WALKTHROUGH=1 npm run dev makes webpack swap the Tide SDK boundary (@tidecloak/nextjs, "
+    "@tidecloak/js and lib/tide/relationship) for a simulation: persona sign-in (Dr Mei Lee, Northbridge admin; "
+    "Dr Daniel Chen, Helix admin; Dr Aisha Rahman, St Aurelia admin; Dr Nurul Huda, Sunway researcher), a "
+    "simulated enclave panel for co-signing with a threshold of 2 shown as the quorum, the same "
+    "RelationshipAttestation checks and refusal messages, and AES-GCM as a stand-in for Tide encryption. A banner "
+    "on every page discloses it. The demo video was recorded in walkthrough mode; it does not show live Tide. "
+    "Live mode, the default, is unchanged and uses real TideCloak.",
+    "Honest disclosure: ",
+)
 
 h("Impact")
 p(
@@ -148,7 +170,11 @@ p(
 
 h("Limitations")
 bullets([
-    "Metadata (who deposited, when, and size) is visible to the host.",
+    "Walkthrough mode is a simulation with no cryptographic enforcement. It accepts unsigned persona tokens, so "
+    "NEXT_PUBLIC_WALKTHROUGH must never be set in a real deployment.",
+    "Live mode was verified only up to account enrolment on 22 October, because Tide's public nodes were partly down.",
+    "The institution in a user's profile is self-asserted; access decisions use the signed groups and roles.",
+    "Metadata (author name and institution, room, post type, time and size) is visible to the host.",
     "Whoever serves the JavaScript is trusted: a malicious host could ship code that exfiltrates plaintext after "
     "decryption in the browser.",
     "Revocation is forward-only; an admitted member can copy plaintext they have read.",
@@ -158,24 +184,24 @@ bullets([
 ])
 
 h("Running it (summary)")
-p("Full steps and troubleshooting are in RUN_INSTRUCTIONS.md in the repository.")
+p("Full steps and troubleshooting are in RUN_INSTRUCTIONS.md (also supplied as a separate deliverable).")
 bullets([
-    "TideCloak must run on Linux with Docker (Tide's Windows native library is a stub). We used a GitHub Codespace.",
-    "Copy app/.env.example to app/.env and set KC_BOOTSTRAP_ADMIN_PASSWORD, TIDE_LICENSE_EMAIL and "
-    "TIDE_TERMS_ACCEPTED=yes (only after reading https://tide.org/legal).",
-    "On the Docker host run scripts/codespace-tidecloak.sh. It starts tideorg/tidecloak-dev and runs "
-    "app/scripts/init-tidecloak.sh, which creates realm \"consortium\" with the room groups, licenses it, enables IGA "
-    "and prints an invite link to enrol the first admin in the Tide enclave.",
-    "Forward ports from the Codespace: gh codespace ports forward 8080:8080 3000:3000.",
-    "cd app && npm install && npm run dev, then open http://localhost:3000. If registry.npmjs.org fails TLS, use "
-    "npm install --registry=https://registry.yarnpkg.com.",
-    "Enrol three admins (one per institution) for a real 2-of-3 quorum; the first admin seals each room with "
-    "Seal room policy.",
+    "Walkthrough mode (no Tide account):| copy app/.env.example to app/.env, create a placeholder "
+    "app/data/tidecloak.json if missing (command in RUN_INSTRUCTIONS.md), then cd app && npm install && "
+    "NEXT_PUBLIC_WALKTHROUGH=1 npm run dev and open http://localhost:3000.",
+    "Live mode:| TideCloak must run on Linux with Docker (Tide's Windows native library is a stub); we used a GitHub "
+    "Codespace. Set KC_BOOTSTRAP_ADMIN_PASSWORD, TIDE_LICENSE_EMAIL and TIDE_TERMS_ACCEPTED=yes in app/.env (the "
+    "last only after reading https://tide.org/legal), run bash scripts/codespace-tidecloak.sh, forward ports with "
+    "gh codespace ports forward 8080:8080 3000:3000, enrol the first admin from the printed invite link, then "
+    "cd app && npm install && npm run dev.",
+    "Enrol three admins (one per institution) for a real 2-of-3 quorum; an admin signs each room's two policies once.",
+    "Our venue network intercepted TLS, so npm used --registry=https://registry.yarnpkg.com.",
 ])
 
 foot = doc.add_paragraph()
 foot.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = foot.add_run("Built on Tide's nextjs-e2ee-vault template. All institutions, people and results are synthetic.")
+r = foot.add_run("Built on Tide's nextjs-e2ee-vault template. Interface: Geist, zinc with an emerald accent, light "
+                 "and dark themes, Phosphor icons. All institutions, people and results are synthetic.")
 r.italic = True
 r.font.size = Pt(9)
 
