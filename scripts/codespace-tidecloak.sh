@@ -7,7 +7,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../app"
 set -a; . ./.env; set +a
 command -v jq >/dev/null || sudo apt-get install -y jq >/dev/null
-mkdir -p data
+mkdir -p data/h2
+sudo chown -R 1000:1000 data/h2  # the image runs keycloak as uid 1000
 if ! docker ps --format '{{.Names}}' | grep -qx tidecloak; then
   docker rm -f tidecloak >/dev/null 2>&1 || true
   docker run -d --name tidecloak -p 8080:8080 \

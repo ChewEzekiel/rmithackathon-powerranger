@@ -5,7 +5,7 @@ import { Shell } from "../Shell";
 import { useApi } from "@/lib/client";
 import type { Room } from "@/lib/rooms";
 
-type RoomRow = Room & { member: boolean; sealed: boolean; posts: number };
+type RoomRow = Room & { member: boolean; hasWritePolicy: boolean; hasReadPolicy: boolean; posts: number };
 
 function Rooms() {
   const api = useApi();
@@ -22,7 +22,7 @@ function Rooms() {
           <a key={r.id} href={`/room?id=${r.id}`} className="card stack" style={{ color: "inherit" }}>
             <div className="row">
               {r.member ? <span className="chip ok">Member</span> : <span className="chip">Not a member</span>}
-              {r.sealed ? <span className="chip ok">Policy sealed</span> : <span className="chip warn">Awaiting seal</span>}
+              {r.hasWritePolicy && r.hasReadPolicy ? <span className="chip ok">Network-enforced policies</span> : <span className="chip warn">Policies not signed yet</span>}
               <span className="chip">{r.posts} encrypted posts</span>
             </div>
             <h2>{r.title}</h2>

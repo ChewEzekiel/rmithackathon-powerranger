@@ -9,7 +9,8 @@ export const GET = withAuth(async (_req, jwt) => {
   const rooms = ROOMS.map((r) => ({
     ...r,
     member: isMember(jwt, r.id),
-    sealed: !!s.policies[r.id],
+    hasWritePolicy: !!s.policies[r.id]?.write,
+    hasReadPolicy: !!s.policies[r.id]?.read,
     posts: s.posts.filter((p) => p.roomId === r.id).length,
   }));
   return Response.json({ rooms });

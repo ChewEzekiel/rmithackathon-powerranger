@@ -6,7 +6,7 @@ import { useApi, decryptAll, tideError } from "@/lib/client";
 
 interface Dump {
   posts: { id: string; roomId: string; authorName: string; institution: string; kind: string; ciphertext: string; createdAt: string }[];
-  policies: Record<string, { policy: string; sealedBy: string; sealedAt: string }>;
+  policies: Record<string, { write?: string; read?: string; sealedBy: string; sealedAt: string }>;
   profiles: Record<string, unknown>;
 }
 
@@ -19,8 +19,8 @@ function Operator() {
   useEffect(() => { api("/api/operator").then(setDump).catch((e) => setErr(e.message)); }, [api]);
 
   const attempt = async (p: Dump["posts"][number]) => {
-    const pol = dump?.policies[p.roomId]?.policy;
-    if (!pol) return setResult((r) => ({ ...r, [p.id]: { ok: false, msg: "No policy for this room" } }));
+    const pol = dump?.policies[p.roomId]?.read;
+    if (!pol) return setResult((r) => ({ ...r, [p.id]: { ok: false, msg: "No reading policy for this room" } }));
     try {
       const [out] = await decryptAll([p.ciphertext], p.roomId, pol);
       setResult((r) => ({ ...r, [p.id]: { ok: true, msg: `Decrypted - you are a member of ${p.roomId}: ${out.slice(0, 120)}` } }));

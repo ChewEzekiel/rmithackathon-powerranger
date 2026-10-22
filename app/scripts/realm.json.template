@@ -24,6 +24,14 @@
         "description": "RelationshipAttestation:1: may decrypt records a policy grants to this user (name fixed by the ORK contract). Capability only; the policy subject decides which records."
       },
       {
+        "name": "room-dengue-vax-reader",
+        "description": "Room dengue-vax unsealed: mapped onto /rooms/dengue-vax only by a quorum change request. Subject of the room's read policy."
+      },
+      {
+        "name": "room-alz-biomarkers-reader",
+        "description": "Room alz-biomarkers unsealed: mapped onto /rooms/alz-biomarkers only by a quorum change request. Subject of the room's read policy."
+      },
+      {
         "name": "_tide_vault.selfencrypt",
         "description": "Encrypt data with tag: vault"
       },

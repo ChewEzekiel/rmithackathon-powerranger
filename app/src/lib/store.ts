@@ -21,7 +21,8 @@ export interface AuditEvent { at: string; who: string; what: string }
 export interface JoinRequest { sub: string; name: string; institution: string; roomId: string; at: string }
 export interface Store {
   profiles: Record<string, Profile>;
-  policies: Record<string, { policy: string; sealedBy: string; sealedAt: string }>;
+  // write: Group subject, _tide_encryptor (members deposit). read: Role subject room-<id>-reader, _tide_decryptor.
+  policies: Record<string, { write?: string; read?: string; sealedBy: string; sealedAt: string }>;
   posts: Post[];
   joinRequests: JoinRequest[];
   audit: AuditEvent[];

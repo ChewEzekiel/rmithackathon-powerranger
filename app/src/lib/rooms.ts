@@ -30,4 +30,7 @@ export const ROOMS: Room[] = [
 export const INSTITUTIONS = Array.from(new Set(ROOMS.flatMap((r) => r.institutions))).sort();
 
 export const groupPath = (roomId: string) => `/rooms/${roomId}`;
+// The per-room seal. _tide_decryptor is realm-wide, so each room's READ policy names this role as its
+// subject; the unseal change request maps both onto the room's group. Opening one room opens no other.
+export const readerRole = (roomId: string) => `room-${roomId}-reader`;
 export const findRoom = (id: string) => ROOMS.find((r) => r.id === id);

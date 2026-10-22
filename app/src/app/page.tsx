@@ -11,9 +11,9 @@ export default function HomePage() {
         <h1 style={{ marginTop: 14 }}>A research room that no one owns.</h1>
         <p>
           Rival universities, pharma labs and hospitals hold the pieces of the same discovery, but none of them
-          will put pre-publication data on a platform someone else controls. Treaty Room is a shared room where
-          <strong> the platform, its admins and any single member are mathematically unable</strong> to read the
-          work or let someone in alone.
+          will put pre-publication data on a platform someone else controls. Treaty Room is a sealed shared room:
+          <strong> the platform cannot read it, and no single admin or institution can open it early or let someone
+          in alone</strong>. It opens for every member at once when the consortium co-signs.
         </p>
         <div className="row" style={{ marginTop: 22 }}>
           {isInitializing ? (
