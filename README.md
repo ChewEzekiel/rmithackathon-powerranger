@@ -87,6 +87,16 @@ Interface: Geist and Geist Mono, zinc with an emerald accent, light and dark the
 
 A banner on every page says walkthrough mode is on and that Tide network calls are simulated. **The demo video shows walkthrough mode, not live Tide.** Live mode is unchanged and still uses real TideCloak.
 
+## Live TideCloak evidence
+
+The video shows walkthrough mode, but the TideCloak side ran for real on the day. [docs/evidence/live-tidecloak.md](docs/evidence/live-tidecloak.md) has the read-back realm state:
+- licensed realm `consortium` with IGA in Tide mode (`iga.attestor=tide`)
+- the room seal model: groups carrying only `_tide_encryptor`, plus per-room reader roles
+- a governed write answered with HTTP 202 and a change request
+- 266 approved change requests and the exported Tide adapter config (threshold 14 of 20)
+
+It also has the timestamped Tide outage errors (ork2 503s, licence `FinalizeWallet` 500) that blocked account creation.
+
 ## Setup
 
 <!-- How to install and run the prototype. -->
