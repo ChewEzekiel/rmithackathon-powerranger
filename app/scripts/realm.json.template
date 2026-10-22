@@ -7,20 +7,47 @@
   "duplicateEmailsAllowed": true,
   "roles": {
     "realm": [
-      { "name": "appUser", "description": "Standard application user" },
-      { "name": "_tide_enabled", "description": "Represents a tide user thats allowed perform actions on tide" },
-      { "name": "_tide_encryptor", "description": "RelationshipAttestation:1: may encrypt records a policy grants to this user (name fixed by the ORK contract). Capability only; the policy subject decides which records." },
-      { "name": "_tide_decryptor", "description": "RelationshipAttestation:1: may decrypt records a policy grants to this user (name fixed by the ORK contract). Capability only; the policy subject decides which records." },
-      { "name": "_tide_vault.selfencrypt", "description": "Encrypt data with tag: vault" },
-      { "name": "_tide_vault.selfdecrypt", "description": "Decrypt data with tag: vault" },
+      {
+        "name": "appUser",
+        "description": "Standard application user"
+      },
+      {
+        "name": "_tide_enabled",
+        "description": "Represents a tide user thats allowed perform actions on tide"
+      },
+      {
+        "name": "_tide_encryptor",
+        "description": "RelationshipAttestation:1: may encrypt records a policy grants to this user (name fixed by the ORK contract). Capability only; the policy subject decides which records."
+      },
+      {
+        "name": "_tide_decryptor",
+        "description": "RelationshipAttestation:1: may decrypt records a policy grants to this user (name fixed by the ORK contract). Capability only; the policy subject decides which records."
+      },
+      {
+        "name": "_tide_vault.selfencrypt",
+        "description": "Encrypt data with tag: vault"
+      },
+      {
+        "name": "_tide_vault.selfdecrypt",
+        "description": "Decrypt data with tag: vault"
+      },
       {
         "name": "default-roles-REALM_NAME",
         "description": "${role_default-roles}",
         "composite": true,
-        "composites": { "realm": ["_tide_enabled", "appUser", "_tide_vault.selfencrypt", "_tide_vault.selfdecrypt"] }
+        "composites": {
+          "realm": [
+            "_tide_enabled",
+            "appUser",
+            "_tide_vault.selfencrypt",
+            "_tide_vault.selfdecrypt"
+          ]
+        }
       }
     ],
-    "client": { "CLIENT_NAME": [] }
+    "client": {
+      "CLIENT_NAME": []
+    }
   },
   "defaultRole": {
     "name": "default-roles-REALM_NAME",
@@ -38,7 +65,9 @@
         "CLIENT_APP_URL/silent-check-sso.html",
         "CLIENT_APP_URL/auth/redirect"
       ],
-      "webOrigins": ["CLIENT_APP_URL"],
+      "webOrigins": [
+        "CLIENT_APP_URL"
+      ],
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "publicClient": true,
@@ -147,7 +176,9 @@
   "authenticatorConfig": [
     {
       "alias": "tide browser",
-      "config": { "defaultProvider": "tide" }
+      "config": {
+        "defaultProvider": "tide"
+      }
     }
   ],
   "browserFlow": "tidebrowser",
@@ -163,6 +194,27 @@
       "name": "Update Password",
       "providerId": "UPDATE_PASSWORD",
       "enabled": false
+    }
+  ],
+  "groups": [
+    {
+      "name": "rooms",
+      "subGroups": [
+        {
+          "name": "alz-biomarkers",
+          "realmRoles": [
+            "_tide_encryptor",
+            "_tide_decryptor"
+          ]
+        },
+        {
+          "name": "dengue-vax",
+          "realmRoles": [
+            "_tide_encryptor",
+            "_tide_decryptor"
+          ]
+        }
+      ]
     }
   ]
 }

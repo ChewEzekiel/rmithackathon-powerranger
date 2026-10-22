@@ -9,7 +9,10 @@
     "init": "bash scripts/init-tidecloak.sh"
   },
   "dependencies": {
+    "@tidecloak/js": "^0.14.41",
     "@tidecloak/nextjs": "0.14.17",
+    "@tideorg/js": "^0.14.29",
+    "heimdall-tide": "^0.14.41",
     "jose": "^6.0.0",
     "next": "^16.0.0",
     "react": "^19.0.0",
