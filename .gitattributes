@@ -1,0 +1,2 @@
+*.sh text eol=lf
+app/public/tide_dpop_auth.html -text

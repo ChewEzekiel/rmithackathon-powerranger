@@ -1,0 +1,8 @@
+.env
+.env.local
+node_modules/
+.next/
+.tide-pack/
+tidecloak-data/
+*.log
+
