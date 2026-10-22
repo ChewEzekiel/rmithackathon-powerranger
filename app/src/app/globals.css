@@ -254,11 +254,3 @@ tbody tr:last-child td { border-bottom: 0; }
   h1 { font-size: 1.5rem; }
 }
 .room-card .small + .small { margin-top: 4px; }
-
-/* Walkthrough mode (NEXT_PUBLIC_WALKTHROUGH=1) only: disclosure banner + simulated enclave. */
-.wt-banner { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 8px 16px; font-size: 0.82rem; text-align: center; background: var(--warn-bg, #fdf3e1); color: var(--warn, #9a5b00); border-top: 1px solid var(--line); }
-.wt-banner a { margin-left: 6px; font-weight: 600; }
-.wt-enclave { position: fixed; right: 16px; bottom: 52px; z-index: 31; display: grid; gap: 8px; justify-items: end; max-width: 340px; }
-.wt-enclave .card { box-shadow: 0 12px 40px rgb(0 0 0 / 0.25); }
-.wt-person { text-align: left; cursor: pointer; font: inherit; color: inherit; }
-body { padding-bottom: 44px; }
