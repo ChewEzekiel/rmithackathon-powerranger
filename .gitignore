@@ -10,3 +10,4 @@ tidecloak-data/
 *.tsbuildinfo
 video/cache/
 video/bin/
+video/out/

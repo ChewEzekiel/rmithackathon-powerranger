@@ -1,0 +1,72 @@
+[
+  {
+    "id": "hook",
+    "image": null,
+    "title": "What would you build if trust stopped being the bottleneck?",
+    "subtitle": "Three rival Alzheimer's programmes. Three dead candidates. Nothing shared.",
+    "narration": "Three rival Alzheimer's programmes each killed a drug candidate last year. None will tell the others, because whoever runs the shared server could read it, and whoever shares first gets scooped. So labs keep repeating each other's failures.",
+    "caption": "Rival labs repeat each other's failures, because nobody can share safely."
+  },
+  {
+    "id": "constraint",
+    "image": null,
+    "kicker": "The constraint",
+    "title": "Every shared platform has a landlord",
+    "subtitle": "The host can read everything.\nOne admin can let anyone in, or peek early.",
+    "narration": "The problem isn't the science. Every shared platform has a landlord. The host can read everything that's uploaded, and a single admin can let anyone in, or take an early peek.",
+    "caption": "Every shared platform has a landlord who can read it and let anyone in."
+  },
+  {
+    "id": "solution",
+    "image": null,
+    "kicker": "The solution",
+    "title": "Treaty Room",
+    "subtitle": "A sealed research room that no one owns.\nDeposits are encrypted in each researcher's browser, to the room.\nThe room is sealed, even to the depositors.",
+    "narration": "Treaty Room is a sealed research room that no one owns. Each deposit is encrypted in the researcher's own browser, to the room itself. Once it's in, the room is sealed, even to the people who deposited.",
+    "caption": "Encrypted in the browser. Sealed in the room, even to depositors."
+  },
+  {
+    "id": "host-view",
+    "image": null,
+    "kicker": "The host's-eye view",
+    "title": "Our database holds only ciphertext",
+    "subtitle": "Stolen data can't be opened.\nAsk the Tide network for the key without a treaty, and it refuses.",
+    "narration": "Here's what we, the host, actually see. Our database holds only ciphertext. Steal it, and there is nothing you can open. Ask the Tide network for the key, and the network refuses.",
+    "caption": "The host holds only ciphertext. Tide refuses to decrypt it."
+  },
+  {
+    "id": "rogue-steward",
+    "image": null,
+    "kicker": "Attack: the rogue steward",
+    "title": "An admin grants himself early access",
+    "subtitle": "The change is drafted, then stalls at 1 of 2 approvals.\nNothing opens.",
+    "narration": "Now the insider attack. A steward with admin rights grants himself early access. In an ordinary system, that would be the end of it. Here, the change stalls at one of two approvals, and nothing opens.",
+    "caption": "A rogue admin stalls at 1 of 2 approvals. Nothing opens."
+  },
+  {
+    "id": "unseal",
+    "image": null,
+    "kicker": "Unseal by treaty",
+    "title": "Two of three institutions co-sign",
+    "subtitle": "Each signs inside its own Tide enclave.\nAt quorum, the room opens for every member at once.",
+    "narration": "The only way in is the treaty. Two of the three institutions co-sign, each inside its own Tide enclave. The moment quorum is reached, the room opens for every member at once, so nobody gets a head start.",
+    "caption": "2 of 3 institutions co-sign, and the room opens for everyone at once."
+  },
+  {
+    "id": "why-tidecloak",
+    "image": null,
+    "kicker": "Why TideCloak",
+    "title": "Not a checkbox. A quorum.",
+    "subtitle": "Ordinary login: every rule is an admin checkbox and a promise.\nTideCloak: the key never exists whole.\nTide's nodes check membership on every request.\nAccess changes only through a quorum of enclave signatures.",
+    "narration": "Why TideCloak? With ordinary login, every rule is an admin checkbox and a promise. With TideCloak, the key never exists whole. Tide's nodes check membership on every request, and access changes only through a quorum of enclave signatures.",
+    "caption": "Not a checkbox. A quorum: no single party holds the key."
+  },
+  {
+    "id": "close",
+    "image": null,
+    "title": "We built this platform, and we can't read it or open it alone.",
+    "subtitle": "We built it, and we can't read it or open it alone.",
+    "narration": "We built this platform, and we can't read it, or open it, alone. Treaty Room, from Team Sunway Power Ranger. All data in this demo is synthetic.",
+    "min_seconds": 9
+  }
+]
