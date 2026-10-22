@@ -36,7 +36,7 @@ Northbridge University, Helix Therapeutics and St Aurelia Hospital pool Alzheime
 
 <!-- What does your prototype demonstrate today? Describe the key interaction judges should look for. -->
 
-The video (walkthrough mode: Tide's network simulated, as its public nodes were down): three institutions deposit; decryption is refused. A rogue steward's early unseal stalls at 1 of 2 signatures; a second admin co-signs and the room opens for all. The Operator view shows a thief's haul, undecryptable.
+The video (walkthrough mode, simulating Tide's network while its nodes were down): three institutions deposit; decryption is refused. A rogue steward's early unseal stalls at 1 of 2 signatures; a second admin co-signs and the room opens for all. The Operator view shows a thief's haul, undecryptable.
 
 ## Demo video
 
