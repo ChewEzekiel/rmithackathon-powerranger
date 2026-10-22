@@ -40,7 +40,7 @@ The video (walkthrough mode: Tide's network simulated, as its public nodes were 
 
 ## Demo video
 
-[demo/video.mp4](demo/video.mp4) (2 minutes). Team **Sunway PowerRanger**, judged in Malaysia.
+[demo/video.mp4](demo/video.mp4) (1 min 40 s). Team **Sunway PowerRanger**, judged in Malaysia.
 
 The video was recorded in **walkthrough mode**, not against the live Tide network. See [Walkthrough mode](#walkthrough-mode-demo-recording) for why and for exactly what is simulated.
 
