@@ -1,4 +1,5 @@
 import { loadTideConfig } from "./auth/tidecloakConfig";
+import { WALKTHROUGH, wtPending } from "@/walkthrough/server";
 
 // Server-side READ access to TideCloak's change-request list, plus one red-team endpoint.
 // The master-admin password (from .env) is the platform operator's "god key". We use it for reads,
@@ -37,12 +38,18 @@ async function admin(path: string, init: RequestInit = {}) {
 }
 
 export async function listChangeRequests(status = "PENDING") {
+  if (WALKTHROUGH) return wtPending() as unknown as Record<string, unknown>[];
   const r = await admin(`/iga/change-requests?status=${status}`);
   return Array.isArray(r.body) ? (r.body as Record<string, unknown>[]) : [];
 }
 
 /** Red team: the operator tries to push a change request through with the master key. Answer returned verbatim. */
 export async function operatorForceApprove(id: string) {
+  if (WALKTHROUGH) {
+    // Simulated answer, modelled on TideCloak's documented behaviour in Tide multi-admin mode.
+    const refused = { error: "(walkthrough simulation) The server-side authorize lane is refused in Tide multi-admin mode: approvals must be enclave signatures from the institution admins' own browsers." };
+    return { authorize: { status: 403, body: refused }, commit: { status: 412, body: { error: "QUORUM_NOT_MET" } } };
+  }
   const authorize = await admin(`/iga/change-requests/${id}/authorize`, { method: "POST", body: "{}" });
   const commit = await admin(`/iga/change-requests/${id}/commit`, { method: "POST" });
   return { authorize, commit };
@@ -50,5 +57,6 @@ export async function operatorForceApprove(id: string) {
 
 /** The realm's signed admin policy, needed to authorise signing a room policy. */
 export async function adminPolicy() {
+  if (WALKTHROUGH) return { status: 200, body: { policy: Buffer.from("walkthrough-admin-policy").toString("base64") } };
   return admin(`/iga/role-policies/name/tide-realm-admin`);
 }

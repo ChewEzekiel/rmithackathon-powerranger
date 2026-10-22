@@ -9,9 +9,11 @@
     "init": "bash scripts/init-tidecloak.sh"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@tidecloak/js": "^0.14.41",
     "@tidecloak/nextjs": "0.14.17",
     "@tideorg/js": "^0.14.29",
+    "geist": "^1.8.2",
     "heimdall-tide": "^0.14.41",
     "jose": "^6.0.0",
     "next": "^16.0.0",

@@ -2,8 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useTideCloak } from "@tidecloak/nextjs";
+import { CircleNotch, LockKey, SignOut } from "@phosphor-icons/react";
 import { useApi } from "@/lib/client";
 import { INSTITUTIONS } from "@/lib/rooms";
+
+const ic = { size: 16, weight: "regular", "aria-hidden": true } as const;
 
 export interface Me {
   sub: string;
@@ -31,13 +34,16 @@ export function Shell({ active, children }: { active: string; children: React.Re
   }, [api]);
   useEffect(() => { if (authenticated) reloadMe(); }, [authenticated, reloadMe]);
 
-  if (isInitializing) return <div className="wrap"><p className="muted">Connecting to TideCloak...</p></div>;
+  if (isInitializing) return <div className="gate"><p className="muted row"><CircleNotch {...ic} className="spin" /> Connecting to TideCloak...</p></div>;
   if (!authenticated) {
     return (
-      <div className="wrap" style={{ textAlign: "center", paddingTop: 80 }}>
-        <h2>Sign in to Treaty Room</h2>
-        <p className="muted">Your identity is verified by the Tide network. No one stores your password.</p>
-        <button className="btn" onClick={login}>Sign in with Tide</button>
+      <div className="gate">
+        <div className="card stack">
+          <div className="brand-mark lg"><LockKey size={22} weight="regular" aria-hidden /></div>
+          <h2>Sign in to Treaty Room</h2>
+          <p className="muted">Your identity is verified by the Tide network. No one stores your password.</p>
+          <button className="btn" onClick={login}>Sign in with Tide</button>
+        </div>
       </div>
     );
   }
@@ -45,18 +51,24 @@ export function Shell({ active, children }: { active: string; children: React.Re
   return (
     <MeCtx.Provider value={{ me, reloadMe }}>
       <nav className="nav">
-        <a href="/" className="brand">Treaty <span>Room</span></a>
-        {LINKS.map(([href, label]) => (
-          <a key={href} href={href} className={`link ${active === href ? "on" : ""}`}>{label}</a>
-        ))}
-        {me?.profile && (
-          <span className="chip">{me.profile.name} · {me.profile.institution}{me.isAdmin ? " · admin" : ""}</span>
-        )}
-        <button className="btn ghost" onClick={logout}>Sign out</button>
+        <div className="nav-in">
+          <a href="/" className="brand"><span className="brand-mark"><LockKey size={15} weight="regular" aria-hidden /></span>Treaty Room</a>
+          {LINKS.map(([href, label]) => (
+            <a key={href} href={href} className={`link ${active === href ? "on" : ""}`} aria-current={active === href ? "page" : undefined}>{label}</a>
+          ))}
+          {me?.profile && (
+            <span className="who">
+              <strong>{me.profile.name}</strong>
+              <span className="muted">{me.profile.institution}</span>
+              {me.isAdmin && <span className="chip">admin</span>}
+            </span>
+          )}
+          <button className="btn ghost" onClick={logout}><SignOut {...ic} /> Sign out</button>
+        </div>
       </nav>
-      {err && <div className="wrap"><p className="status bad">{err}</p></div>}
+      {err && <div className="wrap notice"><p className="status bad">{err}</p></div>}
       {me && !me.profile && <ProfileModal onDone={reloadMe} />}
-      <main className="wrap" style={{ paddingTop: 28 }}>{children}</main>
+      <main className="wrap enter">{children}</main>
     </MeCtx.Provider>
   );
 }
@@ -75,13 +87,13 @@ function ProfileModal({ onDone }: { onDone: () => void }) {
   };
   return (
     <div className="modal">
-      <div className="card stack">
-        <h2>Introduce yourself</h2>
+      <div className="card stack" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        <h2 id="profile-title">Introduce yourself</h2>
         <p className="muted small">Tide verified who you are without giving us your password or email. Tell your collaborators what to call you.</p>
-        <div><label>Display name</label><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Aisha Rahman" /></div>
+        <div><label htmlFor="profile-name">Display name</label><input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Aisha Rahman" /></div>
         <div>
-          <label>Institution</label>
-          <select value={institution} onChange={(e) => setInstitution(e.target.value)}>
+          <label htmlFor="profile-institution">Institution</label>
+          <select id="profile-institution" value={institution} onChange={(e) => setInstitution(e.target.value)}>
             {INSTITUTIONS.map((i) => <option key={i}>{i}</option>)}
           </select>
         </div>

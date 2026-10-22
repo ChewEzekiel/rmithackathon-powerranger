@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTideCloak } from "@tidecloak/nextjs";
+import { ArrowLeft, ArrowsClockwise, CheckCircle, CircleNotch, LockKey, LockKeyOpen, Scales, Tray, WarningCircle } from "@phosphor-icons/react";
 import { Shell, useMe } from "../Shell";
 import { useApi, decryptAll, tideError } from "@/lib/client";
 import { encryptForRecord, signRelationshipPolicy, readSession, DECRYPT_ROLE, ENCRYPT_ROLE, type RelationshipSubject, type RelationshipAccess } from "@/lib/tide/relationship";
@@ -20,6 +21,8 @@ const EXAMPLES: Record<string, { kind: string; title: string; body: string }> = 
   "Sunway Institute": { kind: "question", title: "Anyone else seeing day-3 fever spikes?", body: "Site 2: 7% of second-dose recipients reported fever over 38.5 C on day 3. Is this site-specific or cross-site?" },
   "KL General Hospital": { kind: "dataset", title: "Adverse-event line list, weeks 1-8", body: "Synthetic line list: 412 participants, 31 AEs, 2 serious (both resolved)." },
 };
+
+const ic = { size: 15, weight: "regular", "aria-hidden": true } as const;
 
 const parsePlain = (s: string): Plain => { try { return JSON.parse(s); } catch { return { title: "(unstructured)", body: s }; } };
 
@@ -116,22 +119,27 @@ function RoomView({ id }: { id: string }) {
 
   return (
     <div className="stack">
-      <a href="/rooms" className="small">← All rooms</a>
+      <a href="/rooms" className="back"><ArrowLeft {...ic} /> All rooms</a>
       <h1>{room.title}</h1>
-      <p style={{ margin: 0 }}>{room.question}</p>
-      <div className="card row" style={{ justifyContent: "space-between" }}>
-        <div className="stack" style={{ margin: 0 }}>
-          <strong>The treaty</strong>
-          <span className="small muted">Signatories: {room.institutions.join(" · ")}</span>
-          <span className="small">Unseal the room or admit a member: <strong>2 of 3 institutions</strong> sign in their own Tide enclaves.</span>
+      <p className="lede">{room.question}</p>
+      <div className="card treaty">
+        <div className="stack">
+          <h2 className="row"><Scales {...ic} /> The treaty</h2>
+          <p className="small muted">Signatories: {room.institutions.join(", ")}</p>
+          <p className="small">Unseal the room or admit a member: <strong>2 of 3 institutions</strong> sign in their own Tide enclaves.</p>
         </div>
         <div className="row">
           <span className={`chip ${state === "member" ? "ok" : ""}`}>{state === "member" ? "Member" : state === "outsider" ? "Not a member" : "..."}</span>
           <span className={`chip ${canWrite && state === "member" ? "ok" : ""}`}>{canWrite && state === "member" ? "Can deposit" : "Cannot deposit"}</span>
-          <span className={`chip ${canRead ? "ok" : "bad"}`}>{canRead ? "Read: OPEN" : "Read: SEALED"}</span>
+          <span className={`chip ${canRead ? "ok" : "sealed"}`}>{canRead ? <LockKeyOpen {...ic} /> : <LockKey {...ic} />}{canRead ? "Read: OPEN" : "Read: SEALED"}</span>
         </div>
       </div>
-      {status.msg && <p className={`status ${status.kind}`}>{status.msg}</p>}
+      {status.msg && (
+        <p className={`status ${status.kind}`} role="status">
+          {status.kind === "ok" ? <CheckCircle {...ic} /> : status.kind === "bad" ? <WarningCircle {...ic} /> : <CircleNotch {...ic} className="spin" />}
+          <span>{status.msg}</span>
+        </p>
+      )}
 
       {me?.isAdmin && needsSigning && (
         <div className="card stack">
@@ -160,19 +168,28 @@ function RoomView({ id }: { id: string }) {
 
       {state === "member" && policy.write && (
         <div className="card stack">
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2 style={{ margin: 0 }}>Deposit a result</h2>
+          <div className="row split">
+            <h2>Deposit a result</h2>
             {example && <button className="btn ghost" onClick={() => setDraft(example)}>Load my synthetic example</button>}
           </div>
-          <div className="row">
-            <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })} style={{ width: 160 }}>
-              <option value="finding">Finding</option><option value="dataset">Dataset</option><option value="question">Question</option>
-            </select>
-            <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Title" style={{ flex: 1, width: "auto" }} />
+          <div className="field-row">
+            <div>
+              <label htmlFor="deposit-kind">Type</label>
+              <select id="deposit-kind" value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}>
+                <option value="finding">Finding</option><option value="dataset">Dataset</option><option value="question">Question</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="deposit-title">Title</label>
+              <input id="deposit-title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Title" />
+            </div>
           </div>
-          <textarea rows={4} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} placeholder="Unpublished or failed result, data summary or question for the other labs..." />
+          <div>
+            <label htmlFor="deposit-body">Details</label>
+            <textarea id="deposit-body" rows={4} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} placeholder="Unpublished or failed result, data summary or question for the other labs..." />
+          </div>
           <div className="row">
-            <button className="btn" onClick={deposit} disabled={busy || !draft.title.trim() || !draft.body.trim()}>Encrypt &amp; deposit</button>
+            <button className="btn" onClick={deposit} disabled={busy || !draft.title.trim() || !draft.body.trim()}><LockKey {...ic} /> Encrypt &amp; deposit</button>
             <span className="muted small">Encrypted in your browser to this room only. Sealed until the treaty opens it.</span>
           </div>
         </div>
@@ -180,34 +197,35 @@ function RoomView({ id }: { id: string }) {
 
       {state === "member" && posts && (
         <div className="stack">
-          <div className="row" style={{ justifyContent: "space-between" }}>
-            <h2 style={{ margin: 0 }}>Deposits ({posts.length})</h2>
+          <div className="row split">
+            <h2>Deposits ({posts.length})</h2>
             <div className="row">
-              <button className="btn ghost" onClick={logout} title="Picks up a committed change request">Refresh access</button>
-              {posts.length > 0 && policy.read && <button className="btn" onClick={() => open(posts)} disabled={busy}>Open all</button>}
+              <button className="btn ghost" onClick={logout} title="Picks up a committed change request"><ArrowsClockwise {...ic} /> Refresh access</button>
+              {posts.length > 0 && policy.read && <button className="btn" onClick={() => open(posts)} disabled={busy}><LockKeyOpen {...ic} /> Open all</button>}
             </div>
           </div>
-          {posts.length === 0 && <p className="muted">No deposits yet.</p>}
+          {posts.length === 0 && <div className="empty"><Tray size={18} weight="regular" aria-hidden /><p>No deposits yet.</p></div>}
           {[...posts].reverse().map((p) => {
             const o = opened[p.id];
             return (
-              <div key={p.id} className="card stack">
+              <article key={p.id} className="card stack">
                 <div className="row">
                   <span className="chip">{p.kind}</span>
                   <strong>{p.authorName}</strong>
-                  <span className="muted small">{p.institution} · {new Date(p.createdAt).toLocaleString()}</span>
-                  <span style={{ marginLeft: "auto" }} className={`chip ${o?.ok ? "ok" : "bad"}`}>{o?.ok ? "Opened" : "Sealed"}</span>
+                  <span className="muted small">{p.institution}</span>
+                  <time className="muted small">{new Date(p.createdAt).toLocaleString()}</time>
+                  <span className={`chip push ${o?.ok ? "ok" : "sealed"}`}>{o?.ok ? <LockKeyOpen {...ic} /> : <LockKey {...ic} />}{o?.ok ? "Opened" : "Sealed"}</span>
                 </div>
                 {o?.ok ? (
-                  <div className="plain"><h3>{o.plain.title}</h3><p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{o.plain.body}</p></div>
+                  <div className="plain"><h3>{o.plain.title}</h3><p>{o.plain.body}</p></div>
                 ) : (
                   <>
                     <div className="cipher">{p.ciphertext}</div>
-                    {o && !o.ok && <p className="status bad small">Tide network refused: {o.msg}</p>}
+                    {o && !o.ok && <p className="status bad small"><WarningCircle {...ic} /><span>Tide network refused: {o.msg}</span></p>}
                     {policy.read && <div><button className="btn ghost" onClick={() => open([p])} disabled={busy}>Open</button></div>}
                   </>
                 )}
-              </div>
+              </article>
             );
           })}
         </div>

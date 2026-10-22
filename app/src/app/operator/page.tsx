@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CheckCircle, LockKeyOpen, Tray, WarningCircle } from "@phosphor-icons/react";
 import { Shell } from "../Shell";
 import { useApi, decryptAll, tideError } from "@/lib/client";
+
+const ic = { size: 15, weight: "regular", "aria-hidden": true } as const;
 
 interface Dump {
   posts: { id: string; roomId: string; authorName: string; institution: string; kind: string; ciphertext: string; createdAt: string }[];
@@ -32,28 +35,36 @@ function Operator() {
   return (
     <div className="stack">
       <h1>What the platform sees</h1>
-      <p className="muted">
+      <p className="lede">
         This page plays a rogue operator or an attacker who stole our database. You get every byte we store: posts, signed
         room policies and profiles. Try to read a post with it. The Tide network checks your identity against the room
         policy and refuses unless the consortium let you in.
       </p>
-      {err && <p className="status bad">{err}</p>}
+      {err && <p className="status bad"><WarningCircle {...ic} /><span>{err}</span></p>}
       {dump && (
         <>
           <div className="card stack">
             <h2>Encrypted posts in our database ({dump.posts.length})</h2>
-            {dump.posts.length === 0 && <p className="muted">No posts yet.</p>}
+            {dump.posts.length === 0 && <div className="empty"><Tray size={18} weight="regular" aria-hidden /><p>No posts yet.</p></div>}
             {dump.posts.map((p) => (
-              <div key={p.id} className="stack" style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+              <div key={p.id} className="stack entry">
                 <div className="row small">
                   <span className="chip">{p.roomId}</span>
-                  <span>{p.authorName} · {p.institution} · {p.kind} · {new Date(p.createdAt).toLocaleString()}</span>
+                  <strong>{p.authorName}</strong>
+                  <span className="muted">{p.institution}</span>
+                  <span className="muted">{p.kind}</span>
+                  <time className="muted">{new Date(p.createdAt).toLocaleString()}</time>
                 </div>
                 <div className="cipher">{p.ciphertext}</div>
                 <div className="row">
-                  <button className="btn ghost" onClick={() => attempt(p)}>Try to decrypt with the stolen data</button>
+                  <button className="btn ghost" onClick={() => attempt(p)}><LockKeyOpen {...ic} /> Try to decrypt with the stolen data</button>
                 </div>
-                {result[p.id] && <p className={`status ${result[p.id].ok ? "ok" : "bad"}`}>{result[p.id].msg}</p>}
+                {result[p.id] && (
+                  <p className={`status ${result[p.id].ok ? "ok" : "bad"}`} role="status">
+                    {result[p.id].ok ? <CheckCircle {...ic} /> : <WarningCircle {...ic} />}
+                    <span>{result[p.id].msg}</span>
+                  </p>
+                )}
               </div>
             ))}
           </div>

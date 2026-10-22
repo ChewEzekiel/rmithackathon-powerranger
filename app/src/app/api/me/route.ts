@@ -6,7 +6,8 @@ import { groupsOf, isRealmAdmin } from "@/lib/claims";
 // GET /api/me - who the verified token says you are, plus your in-app profile.
 export const GET = withAuth(async (_req, jwt) => {
   const profile = readStore().profiles[jwt.sub!] || null;
-  return Response.json({ sub: jwt.sub, profile, groups: groupsOf(jwt), isAdmin: isRealmAdmin(jwt) });
+  const realmRoles = ((jwt.realm_access as { roles?: string[] } | undefined)?.roles) || [];
+  return Response.json({ sub: jwt.sub, profile, groups: groupsOf(jwt), realmRoles, isAdmin: isRealmAdmin(jwt) });
 });
 
 // POST /api/me {name, institution} - Tide gives accounts no name, so users introduce themselves here.

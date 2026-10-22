@@ -11,3 +11,12 @@ tidecloak-data/
 video/cache/
 video/bin/
 video/out/
+invite.txt
+cs-init.log
+forward.log
+socks.log
+dev.log
+build.log
+npm-install.log
+init.log
+tidecloak.log

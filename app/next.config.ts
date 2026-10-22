@@ -2,9 +2,20 @@ import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   // Next.js 16+ defaults to Turbopack. Use `next dev --webpack` (in package.json)
   // because @tidecloak/* packages need the webpack workarounds below.
-  webpack: (config) => {
+  webpack: (config, { webpack }) => {
+    // Walkthrough mode only: swap the Tide SDK boundary for the simulation in src/walkthrough/.
+    if (process.env.NEXT_PUBLIC_WALKTHROUGH === "1") {
+      const sim = (f: string) => path.resolve(__dirname, "src/walkthrough", f);
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/^@tidecloak\/nextjs$/, sim("nextjs.tsx")),
+        new webpack.NormalModuleReplacementPlugin(/^@tidecloak\/js$/, sim("tidejs.ts")),
+        new webpack.NormalModuleReplacementPlugin(/lib\/tide\/relationship$/, sim("relationship.ts")),
+      );
+    }
+
     // Fix 1: @tidecloak/js incomplete re-exports — suppress strict export checking
     config.module.strictExportPresence = false;
 

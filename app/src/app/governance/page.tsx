@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ArrowsClockwise, ArrowUpRight, LockKeyOpen, PenNib, Tray, WarningCircle } from "@phosphor-icons/react";
 import { Shell, useMe } from "../Shell";
 import { useApi, useTideAdmin } from "@/lib/client";
 import { ROOMS, groupPath, readerRole } from "@/lib/rooms";
 import { DECRYPT_ROLE } from "@/lib/tide/relationship";
 import tcConfig from "../../../data/tidecloak.json";
+
+const ic = { size: 15, weight: "regular", "aria-hidden": true } as const;
 
 type CR = Record<string, unknown> & { id: string };
 interface JoinReq { sub: string; name: string; institution: string; roomId: string; at: string }
@@ -74,67 +77,73 @@ function Governance() {
   return (
     <div className="stack">
       <h1>Governance</h1>
-      <p className="muted">
+      <p className="lede">
         Every change to who can read or enter a room is a TideCloak change request. It takes effect only when a quorum of
         institution admins sign it, each in their own Tide enclave. In Tide mode those signatures are checked by the Tide
         network, so neither we nor any single admin can forge one.
       </p>
-      {err && <p className="status bad">{err}</p>}
+      {err && <p className="status bad"><WarningCircle {...ic} /><span>{err}</span></p>}
       {out && <pre className="json">{out}</pre>}
 
       {me?.isAdmin && (
         <div className="card stack">
           <h2>Propose (institution admins)</h2>
           <div className="row">
-            {ROOMS.map((r) => <button key={r.id} className="btn ghost" onClick={() => proposeUnseal(r.id)}>Propose unseal: {r.title}</button>)}
+            {ROOMS.map((r) => <button key={r.id} className="btn ghost" onClick={() => proposeUnseal(r.id)}><LockKeyOpen {...ic} /> Propose unseal: {r.title}</button>)}
           </div>
           {joins.length > 0 && (
-            <table>
-              <thead><tr><th>Join request</th><th>Room</th><th></th></tr></thead>
-              <tbody>{joins.map((j) => (
-                <tr key={j.sub + j.roomId}><td>{j.name} <span className="muted small">{j.institution}</span></td><td>{j.roomId}</td>
-                  <td><button className="btn ghost" onClick={() => proposeAdmission(j)}>Propose admission</button></td></tr>
-              ))}</tbody>
-            </table>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Join request</th><th>Room</th><th></th></tr></thead>
+                <tbody>{joins.map((j) => (
+                  <tr key={j.sub + j.roomId}><td>{j.name} <span className="muted small">{j.institution}</span></td><td><code>{j.roomId}</code></td>
+                    <td><button className="btn ghost" onClick={() => proposeAdmission(j)}>Propose admission</button></td></tr>
+                ))}</tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
 
       <div className="card stack">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h2 style={{ margin: 0 }}>Waiting for signatures ({pending.length})</h2>
+        <div className="row split">
+          <h2>Waiting for signatures ({pending.length})</h2>
           <div className="row">
-            <button className="btn ghost" onClick={load}>Refresh</button>
-            <a className="btn" href={consoleUrl()} target="_blank" rel="noreferrer">Sign in Tide console</a>
+            <button className="btn ghost" onClick={load}><ArrowsClockwise {...ic} /> Refresh</button>
+            <a className="btn" href={consoleUrl()} target="_blank" rel="noreferrer">Sign in Tide console <ArrowUpRight {...ic} /></a>
           </div>
         </div>
-        {pending.length === 0 ? <p className="muted">Nothing waiting.</p> : (
-          <table>
-            <thead><tr><th>Request</th><th>Change</th><th>Filed by</th><th>Signatures</th><th></th></tr></thead>
-            <tbody>
-              {pending.map((cr) => (
-                <tr key={cr.id}>
-                  <td><code>{String(cr.id).slice(0, 8)}</code></td>
-                  <td>{String(pick(cr, "actionType") ?? "")}<div className="muted small">{String(pick(cr, "entityType") ?? "")} {String(pick(cr, "description", "summary") ?? "")}</div></td>
-                  <td className="small">{String(pick(cr, "requestedBy") ?? "")}</td>
-                  <td>
-                    <span className={`chip ${cr.readyToCommit ? "ok" : "warn"}`}>{tally(cr)}</span>
-                    <div className="muted small">{Array.isArray(cr.authorizers) ? (cr.authorizers as { username?: string }[]).map((a) => a.username).join(", ") : ""}</div>
-                  </td>
-                  <td>{me?.isAdmin && <button className="btn danger" onClick={() => force(cr.id)} title="Red-team demo: the platform operator tries to approve this with the TideCloak master-admin password">Force as operator</button>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {pending.length === 0 ? <div className="empty"><Tray size={18} weight="regular" aria-hidden /><p>Nothing waiting.</p></div> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Request</th><th>Change</th><th>Filed by</th><th>Signatures</th><th></th></tr></thead>
+              <tbody>
+                {pending.map((cr) => (
+                  <tr key={cr.id}>
+                    <td><code>{String(cr.id).slice(0, 8)}</code></td>
+                    <td>{String(pick(cr, "actionType") ?? "")}<div className="muted small">{String(pick(cr, "entityType") ?? "")} {String(pick(cr, "description", "summary") ?? "")}</div></td>
+                    <td className="small">{String(pick(cr, "requestedBy") ?? "")}</td>
+                    <td>
+                      <span className={`chip ${cr.readyToCommit ? "ok" : "warn"}`}><PenNib {...ic} /> {tally(cr)}</span>
+                      <div className="muted small">{Array.isArray(cr.authorizers) ? (cr.authorizers as { username?: string }[]).map((a) => a.username).join(", ") : ""}</div>
+                    </td>
+                    <td>{me?.isAdmin && <button className="btn danger" onClick={() => force(cr.id)} title="Red-team demo: the platform operator tries to approve this with the TideCloak master-admin password">Force as operator</button>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       <div className="card stack">
         <h2>Activity</h2>
-        {audit.length === 0 ? <p className="muted">No activity yet.</p> : (
-          <table><tbody>{audit.map((a, i) => (
-            <tr key={i}><td className="small muted" style={{ whiteSpace: "nowrap" }}>{new Date(a.at).toLocaleTimeString()}</td><td><strong>{a.who}</strong> {a.what}</td></tr>
-          ))}</tbody></table>
+        {audit.length === 0 ? <div className="empty"><Tray size={18} weight="regular" aria-hidden /><p>No activity yet.</p></div> : (
+          <div className="table-wrap">
+            <table><tbody>{audit.map((a, i) => (
+              <tr key={i}><td className="small muted" style={{ whiteSpace: "nowrap" }}><time>{new Date(a.at).toLocaleTimeString()}</time></td><td><strong>{a.who}</strong> {a.what}</td></tr>
+            ))}</tbody></table>
+          </div>
         )}
       </div>
     </div>
