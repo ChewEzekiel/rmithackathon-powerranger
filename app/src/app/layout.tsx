@@ -2,7 +2,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata = {
-  title: "Consilium - a research room no one owns",
+  title: "Treaty Room - a research room no one owns",
   description: "Rival institutions collaborate on pre-publication research. No platform, admin or member can read or grant access alone.",
 };
 

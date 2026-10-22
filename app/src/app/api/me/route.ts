@@ -16,6 +16,6 @@ export const POST = withAuth(async (req, jwt) => {
   if (!INSTITUTIONS.includes(institution)) return Response.json({ error: "Unknown institution" }, { status: 400 });
   const profile = { sub: jwt.sub!, name: name.trim(), institution };
   updateStore((s) => { s.profiles[jwt.sub!] = profile; });
-  audit(profile.name, `joined Consilium from ${institution}`);
+  audit(profile.name, `joined Treaty Room from ${institution}`);
   return Response.json({ profile });
 });

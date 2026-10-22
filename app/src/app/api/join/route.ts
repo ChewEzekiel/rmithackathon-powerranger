@@ -1,15 +1,19 @@
 import { withAuth } from "@/lib/auth/middleware";
-import { readStore, audit } from "@/lib/store";
-import { findRoom, groupPath } from "@/lib/rooms";
-import { proposeMembership } from "@/lib/kcAdmin";
+import { readStore, updateStore, audit } from "@/lib/store";
+import { findRoom } from "@/lib/rooms";
+import { isMember } from "@/lib/claims";
 
-// POST /api/join {room} - the platform asks TideCloak (with the master-admin key) to add the caller.
-// With quorum-enforced governance this grants nothing: it files a change request.
+// POST /api/join {room} - records a request to join. It grants nothing: an institution admin turns it
+// into a TideCloak change request from their own browser, and a quorum must sign it.
 export const POST = withAuth(async (req, jwt) => {
   const { room } = await req.json();
   if (!findRoom(room)) return Response.json({ error: "Unknown room" }, { status: 404 });
-  const r = await proposeMembership(jwt.sub!, groupPath(room));
-  const who = readStore().profiles[jwt.sub!]?.name || "a researcher";
-  audit(who, `requested to join ${room} (TideCloak answered HTTP ${r.status})`);
-  return Response.json({ status: r.status, body: r.body });
+  if (isMember(jwt, room)) return Response.json({ error: "Already a member" }, { status: 409 });
+  const s = readStore();
+  const who = s.profiles[jwt.sub!]?.name || "a researcher";
+  if (!s.joinRequests.some((j) => j.sub === jwt.sub && j.roomId === room)) {
+    updateStore((st) => { st.joinRequests.push({ sub: jwt.sub!, name: who, institution: s.profiles[jwt.sub!]?.institution || "", roomId: room, at: new Date().toISOString() }); });
+    audit(who, `asked to join ${room}`);
+  }
+  return Response.json({ ok: true });
 });

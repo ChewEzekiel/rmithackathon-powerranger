@@ -21,6 +21,29 @@ export function useApi() {
   );
 }
 
+/**
+ * Call TideCloak's admin API from the ADMIN'S OWN browser with their DPoP-bound token, never via our
+ * server: a governed write then becomes a change request filed by that human, and approvals are
+ * credited to them (Tide canon AP-89).
+ */
+export function useTideAdmin() {
+  const { token, secureFetch, getConfig } = useTideCloak();
+  return useCallback(
+    async (path: string, init: RequestInit = {}) => {
+      const c = getConfig() as { "auth-server-url": string; realm: string };
+      const res = await secureFetch(`${c["auth-server-url"].replace(/\/+$/, "")}/admin/realms/${c.realm}${path}`, {
+        ...init,
+        headers: { ...(init.headers || {}), Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const text = await res.text();
+      let body: unknown = text;
+      try { body = text ? JSON.parse(text) : null; } catch {}
+      return { status: res.status, body };
+    },
+    [token, secureFetch, getConfig],
+  );
+}
+
 const fromBase64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
 /** Decrypt every post of a room in one enclave round. The room id is the only tag. */

@@ -1,9 +1,9 @@
 import { loadTideConfig } from "./auth/tidecloakConfig";
 
-// The platform operator's own credentials: the TideCloak master-admin password from .env.
-// We give our server this "god key" on purpose, to show what it can NOT do: with IGA in Tide
-// mode, every access change it makes is only a proposal until institution admins approve it
-// in their Tide enclaves. It cannot approve its own proposals.
+// Server-side READ access to TideCloak's change-request list, plus one red-team endpoint.
+// The master-admin password (from .env) is the platform operator's "god key". We use it for reads,
+// and in operatorForceApprove to show what it can NOT do: in Tide multi-admin mode, approvals must
+// be enclave signatures from the institution admins' own browsers.
 function base() {
   const c = loadTideConfig();
   return { url: c["auth-server-url"].replace(/\/+$/, ""), realm: c.realm };
@@ -36,33 +36,19 @@ async function admin(path: string, init: RequestInit = {}) {
   return { status: res.status, body };
 }
 
-/** Ask TideCloak to add a user to a room group. Under IGA this returns a pending change request. */
-export async function proposeMembership(userId: string, groupPath: string) {
-  const g = await admin(`/group-by-path${groupPath}`);
-  const groupId = (g.body as { id?: string })?.id;
-  if (!groupId) throw new Error(`group ${groupPath} not found (${g.status})`);
-  return admin(`/users/${userId}/groups/${groupId}`, { method: "PUT" });
-}
-
 export async function listChangeRequests(status = "PENDING") {
   const r = await admin(`/iga/change-requests?status=${status}`);
   return Array.isArray(r.body) ? (r.body as Record<string, unknown>[]) : [];
 }
 
-/** The operator tries to push a change request through on its own. Returns TideCloak's answer verbatim. */
+/** Red team: the operator tries to push a change request through with the master key. Answer returned verbatim. */
 export async function operatorForceApprove(id: string) {
   const authorize = await admin(`/iga/change-requests/${id}/authorize`, { method: "POST", body: "{}" });
   const commit = await admin(`/iga/change-requests/${id}/commit`, { method: "POST" });
   return { authorize, commit };
 }
 
-export async function userGroups(userId: string) {
-  const r = await admin(`/users/${userId}/groups`);
-  return Array.isArray(r.body) ? (r.body as { path: string }[]).map((g) => g.path) : [];
-}
-
 /** The realm's signed admin policy, needed to authorise signing a room policy. */
 export async function adminPolicy() {
-  const r = await admin(`/iga/role-policies/name/tide-realm-admin`);
-  return r;
+  return admin(`/iga/role-policies/name/tide-realm-admin`);
 }

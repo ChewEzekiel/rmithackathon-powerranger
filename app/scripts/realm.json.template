@@ -203,15 +203,13 @@
         {
           "name": "alz-biomarkers",
           "realmRoles": [
-            "_tide_encryptor",
-            "_tide_decryptor"
+            "_tide_encryptor"
           ]
         },
         {
           "name": "dengue-vax",
           "realmRoles": [
-            "_tide_encryptor",
-            "_tide_decryptor"
+            "_tide_encryptor"
           ]
         }
       ]

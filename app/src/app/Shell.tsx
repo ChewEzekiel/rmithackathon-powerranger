@@ -35,7 +35,7 @@ export function Shell({ active, children }: { active: string; children: React.Re
   if (!authenticated) {
     return (
       <div className="wrap" style={{ textAlign: "center", paddingTop: 80 }}>
-        <h2>Sign in to Consilium</h2>
+        <h2>Sign in to Treaty Room</h2>
         <p className="muted">Your identity is verified by the Tide network. No one stores your password.</p>
         <button className="btn" onClick={login}>Sign in with Tide</button>
       </div>
@@ -45,7 +45,7 @@ export function Shell({ active, children }: { active: string; children: React.Re
   return (
     <MeCtx.Provider value={{ me, reloadMe }}>
       <nav className="nav">
-        <a href="/" className="brand">Consil<span>ium</span></a>
+        <a href="/" className="brand">Treaty <span>Room</span></a>
         {LINKS.map(([href, label]) => (
           <a key={href} href={href} className={`link ${active === href ? "on" : ""}`}>{label}</a>
         ))}

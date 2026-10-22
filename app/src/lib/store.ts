@@ -18,18 +18,21 @@ export interface Post {
   createdAt: string;
 }
 export interface AuditEvent { at: string; who: string; what: string }
+export interface JoinRequest { sub: string; name: string; institution: string; roomId: string; at: string }
 export interface Store {
   profiles: Record<string, Profile>;
   policies: Record<string, { policy: string; sealedBy: string; sealedAt: string }>;
   posts: Post[];
+  joinRequests: JoinRequest[];
   audit: AuditEvent[];
 }
 
 export function readStore(): Store {
+  const empty: Store = { profiles: {}, policies: {}, posts: [], joinRequests: [], audit: [] };
   try {
-    return JSON.parse(readFileSync(FILE, "utf-8"));
+    return { ...empty, ...JSON.parse(readFileSync(FILE, "utf-8")) };
   } catch {
-    return { profiles: {}, policies: {}, posts: [], audit: [] };
+    return empty;
   }
 }
 
