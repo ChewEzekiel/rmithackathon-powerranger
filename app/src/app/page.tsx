@@ -37,11 +37,11 @@ export default function HomePage() {
         </div>
         <div className="card">
           <h3>No unilateral access</h3>
-          <p className="muted small">Adding anyone to a room is a change request that institution admins must approve in their own Tide enclaves. Even our master-admin key cannot push it through.</p>
+          <p className="muted small">Letting anyone in, or opening the room, is a change request that 2 of 3 institution admins must sign in their own Tide enclaves. We hold no seat in that vote.</p>
         </div>
         <div className="card">
-          <h3>Proof of who said what, when</h3>
-          <p className="muted small">Every post carries its author, institution and time, so early contributors keep credit without publishing early.</p>
+          <h3>Nobody reads first</h3>
+          <p className="muted small">Deposits stay sealed, even to their authors, until the treaty opens the room for every member at the same moment. Sharing first no longer means getting scooped.</p>
         </div>
       </section>
     </div>
