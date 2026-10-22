@@ -1,6 +1,6 @@
 # Live TideCloak evidence
 
-The demo video runs in walkthrough mode because no Tide account could be created on 22 Oct 2026 (see "Outage" below).
+The app on `main` signs in with Tide only (section 8). The demo video was recorded from branch `walkthrough-demo`, which simulates the Tide calls, because no Tide account could be created on 22 Oct 2026 (see "Outage" below).
 This page records what **did** run against real TideCloak and the real Tide network, so the integration can be checked.
 Every value below is copied from real output on the day. Tokens, keys, passwords, invite links and the licence email are redacted.
 
@@ -86,11 +86,57 @@ Separately, the venue network intercepted TLS for `*.tideprotocol.com` (`SEC_E_U
 ## 7. What this does and does not prove
 
 - **Proven live:** TideCloak running the official image; realm licensed with a Tide vendor key; IGA in Tide mode; governed writes become change requests (HTTP 202); the room seal model (groups with `_tide_encryptor` only, per-room reader roles) exists in the real realm; Tide adapter config exported.
-- **Not proven live:** Tide login, enclave signing of the room policies, and `RelationshipAttestation:1` encrypt/decrypt on the Tide network. All three need an enrolled Tide account, which the outage prevented. The code paths are in `app/src/lib/tide/relationship.ts` (Tide's helper, unchanged) and `app/src/app/room/page.tsx`; the walkthrough mode replays the same checks with a simulation.
+- **Not proven live:** Tide login, enclave signing of the room policies, and `RelationshipAttestation:1` encrypt/decrypt on the Tide network. All three need an enrolled Tide account, which the outage prevented. The code paths are in `app/src/lib/tide/relationship.ts` (Tide's helper, unchanged) and `app/src/app/room/page.tsx`; the demo recording on branch `walkthrough-demo` replays the same checks with a simulation.
+
+## 8. Tide-only login (main)
+
+Walkthrough mode (simulated persona sign-in, simulated enclave, the `/walkthrough` page and the `/api/wt/*` routes) has been removed from `main`. On `main` the only way to sign in is Tide. The build the demo video was recorded from is kept on the branch `walkthrough-demo`.
+
+### Sign-in hands off to Tide
+
+Checked on 22 Oct 2026 against the running stack (app on `http://localhost:3000`, TideCloak realm `consortium` on `http://localhost:8080`). Clicking **Sign in with Tide** went through TideCloak and its `tide` identity-provider broker and landed on the real Tide sign-in page on `https://ork1.tideprotocol.com` (page title "Tide", Username and Password fields, "Secured by Tide"). No credentials were typed, because Tide account creation is still blocked (section 6).
+
+![Treaty Room landing page with the Sign in with Tide button](login-1-landing.png)
+
+![Tide sign-in page on ork1.tideprotocol.com, Secured by Tide](login-2-tide-enclave.png)
+
+URL chain (top-level documents and the iframes they load; query values removed, parameter names kept):
+
+| Step | Request | Status |
+|---|---|---|
+| 1 | `GET http://localhost:3000/` | 200 |
+| 2 | keycloak-js background iframes: `GET http://localhost:8080/realms/consortium/protocol/openid-connect/3p-cookies/step1.html`, then `.../3p-cookies/step2.html`, then `.../login-status-iframe.html` | 200 each |
+| 3 | Click **Sign in with Tide**: `GET http://localhost:8080/realms/consortium/protocol/openid-connect/auth?client_id&redirect_uri&state&response_mode&response_type&scope&nonce&code_challenge&code_challenge_method&dpop_jkt` | 303 |
+| 4 | `GET http://localhost:8080/realms/consortium/broker/tide/login?session_code&client_id&tab_id&client_data` | 303 |
+| 5 | `GET https://ork1.tideprotocol.com/?sid&gVVK&authorizerPack&gVRKSignature&vRedirectUri&rURISignature&signedSettings&settingsSignature&voucherURL&type&state&iframePath&dpop_jkt&clientOrigin&clientOriginAuth` (the Tide sign-in page, where the browser ended) | 200 |
+| 6 | Loaded by the Tide page, matching its `iframePath`: `GET http://localhost:3000/tide_dpop/iss/<hex of http://localhost:8080/realms/consortium>/aud/<hex of consortium-client>/tide_dpop_auth.html?version&openerOrigin` | 200 |
+
+The auth request comes from the public client `consortium-client` and carries PKCE (`code_challenge`) and a DPoP key thumbprint (`dpop_jkt`). Step 6 shows the app's DPoP helper page is served and reached by the Tide page.
+
+### APIs return 401 without a Tide token
+
+Every route under `app/src/app/api` was called on the live server (GET, plus POST where the route exports it), each four ways: no `Authorization` header, `Bearer wt.lee` (the old walkthrough token form), an unsigned `alg: none` JWT as `Bearer`, and the same JWT as `DPoP`.
+
+| Method and route | No auth | `Bearer wt.lee` | alg-none `Bearer` | alg-none `DPoP` |
+|---|---|---|---|---|
+| GET `/api/governance` | 401 | 401 | 401 | 401 |
+| POST `/api/join` | 401 | 401 | 401 | 401 |
+| GET, POST `/api/me` | 401 | 401 | 401 | 401 |
+| GET, POST `/api/operator` | 401 | 401 | 401 | 401 |
+| GET, POST `/api/policy` | 401 | 401 | 401 | 401 |
+| GET, POST `/api/posts` | 401 | 401 | 401 | 401 |
+| GET `/api/rooms` | 401 | 401 | 401 | 401 |
+| GET, POST `/api/wt/approve` (removed) | 404 | 404 | 404 | 404 |
+| GET, POST `/api/wt/kc/realms/consortium` (removed) | 404 | 404 | 404 | 404 |
+| GET `/api/join` | 405 | 405 | 405 | 405 |
+
+- Every protected route and method returns 401 in all four cases. The 401 bodies on `/api/me` show which check rejected each token: `Missing Authorization header` (no auth), `Invalid Compact JWS` (`wt.lee`), and `Unsupported "alg" value for a JSON Web Key Set` (alg-none, both schemes), so tokens are verified against the realm JWKS.
+- The removed walkthrough routes return 404, so the simulated sign-in path is gone from the live server.
+- `GET /api/join` returns 405 because that route only exports POST. (`/api/config`, the template's unauthenticated adapter-config route, was deleted after this test; nothing used it.)
 
 ## Reproduce
 
-With TideCloak running (Option A in `RUN_INSTRUCTIONS.md`) and a master-admin token in `$T`:
+With TideCloak running (the live-mode steps in `RUN_INSTRUCTIONS.md`) and a master-admin token in `$T`:
 
 ```bash
 R=http://localhost:8080/admin/realms/consortium

@@ -10,13 +10,13 @@ Built with [TideCloak](https://tide.org/tidecloak?utm_source=github&utm_medium=r
 
 <!-- What new product, service, experience or way of working are you proposing? What makes your idea distinctive? -->
 
-A neutral data room with no neutral host. Deposits are encrypted in the browser and stay sealed, even to depositors, until 2 of 3 institutions sign; then every member reads at once. Nobody reads first, so nobody has to trust first.
+A neutral data room with no host. Deposits are encrypted in the browser and stay sealed, even to depositors, until 2 of 3 institutions sign; then every member reads at once. Nobody reads first, so nobody has to trust first.
 
 ### 2. Trust constraint insight
 
 <!-- What is difficult, risky or impossible today because trust, privacy or security gets in the way? Explain what becomes possible when that constraint is removed. -->
 
-Failed and unpublished results stay in drawers: pooling them means trusting a host that could read or leak them, or a partner who could publish first. Data trusts only move that trust. Remove it and competitors pool evidence before publication.
+Failed and unpublished results stay in drawers: pooling them means trusting a host that could read or leak them, or a partner publishing first. Data trusts only move that trust. Remove it and competitors pool evidence before publication.
 
 ### 3. Value & impact
 
@@ -42,7 +42,7 @@ The video (walkthrough mode, simulating Tide's network while its nodes were down
 
 [demo/video.mp4](demo/video.mp4) (1 min 40 s). Team **Sunway PowerRanger**, judged in Malaysia.
 
-The video was recorded in **walkthrough mode**, not against the live Tide network. See [Walkthrough mode](#walkthrough-mode-demo-recording) for why and for exactly what is simulated.
+The video was recorded from branch `walkthrough-demo`, not against the live Tide network. See [Demo recording](#demo-recording) for why.
 
 ## How it works
 
@@ -71,21 +71,11 @@ Key files: `app/src/lib/rooms.ts` (rooms and the per-room reader role), `app/src
 
 Interface: Geist and Geist Mono, zinc with an emerald accent, light and dark themes, Phosphor icons.
 
-## Walkthrough mode (demo recording)
+## Demo recording
 
-**What happened.** On 22 October, Tide's public ORK network had nodes down (ork2, ork3 and ork7 returned HTTP 503). Creating a new Tide account needs every selected ORK, so nobody could enrol an account, and without an enrolled admin the live flow stops before any policy can be signed. Our live setup worked up to that step: TideCloak running, realm `consortium` created, licensed, IGA enabled and the adapter config exported. We could not run the steps after enrolment against the live network that day.
+On 22 October Tide's public ORK nodes were down (ork2, ork3 and ork7 returned HTTP 503), so no Tide account could be created and the live flow stopped before any policy could be signed. To still show the flows, the video was recorded from branch `walkthrough-demo`, which simulates the Tide calls (sign-in, policy checks, encryption, IGA signing). A banner on every screen of the video says so.
 
-**What we did.** So the screens and flows could still be shown, we added a walkthrough mode. `NEXT_PUBLIC_WALKTHROUGH=1 npm run dev` makes webpack (`NormalModuleReplacementPlugin` in `app/next.config.ts`) swap the Tide SDK boundary, `@tidecloak/nextjs`, `@tidecloak/js` and `lib/tide/relationship`, for a simulation in `app/src/walkthrough/`. Everything else is the same app code.
-
-| | Live mode (default) | Walkthrough mode |
-|---|---|---|
-| Sign-in | Tide account, threshold-signed token | Pick a persona at `/walkthrough`: Dr Mei Lee (Northbridge, admin), Dr Daniel Chen (Helix, admin), Dr Aisha Rahman (St Aurelia, admin), Dr Nurul Huda (Sunway Institute, researcher) |
-| Policy and access checks | Tide's ORKs run `RelationshipAttestation:1` | The same checks run in the browser, with the same refusal messages |
-| Encryption | Tide threshold encryption | AES-GCM with a locally derived key (a stand-in, not secure) |
-| Change requests | TideCloak IGA, enclave signatures | Simulated IGA and a simulated "Tide enclave" panel per admin; threshold 2, shown as the quorum |
-| State | TideCloak realm | `app/data/walkthrough.json` |
-
-A banner on every page says walkthrough mode is on and that Tide network calls are simulated. **The demo video shows walkthrough mode, not live Tide.** Live mode is unchanged and still uses real TideCloak.
+`main` has no simulation: signing in requires a real Tide account. To reproduce the recording, run `git checkout walkthrough-demo` and follow the README on that branch.
 
 ## Live TideCloak evidence
 
@@ -99,19 +89,15 @@ It also has the timestamped Tide outage errors (ork2 503s, licence `FinalizeWall
 
 ## Setup
 
+Using the app: [docs/USER_GUIDE.md](docs/USER_GUIDE.md) (every screen and button, Tide sign-in included).
+
 <!-- How to install and run the prototype. -->
 
-Full copy-paste steps and troubleshooting: [RUN_INSTRUCTIONS.md](RUN_INSTRUCTIONS.md).
+Full copy-paste steps and troubleshooting: [RUN_INSTRUCTIONS.md](RUN_INSTRUCTIONS.md). The app needs a real Tide login; the simulated build used for the video is on branch `walkthrough-demo` (see [Demo recording](#demo-recording)).
 
-**Walkthrough mode (no Tide account needed, matches the video).**
+TideCloak must run on **Linux with Docker**: Tide's native library for Windows is a stub. We ran the official `tideorg/tidecloak-dev` image in a GitHub Codespace and forwarded port 8080 to `localhost`.
 
-1. `cp app/.env.example app/.env` (it already sets `DEMO_RED_TEAM=1` for the Operator view).
-2. Create a placeholder adapter config if `app/data/tidecloak.json` does not exist (the pages import it at build time; see RUN_INSTRUCTIONS.md Option B).
-3. `cd app && npm install && NEXT_PUBLIC_WALKTHROUGH=1 npm run dev`, open <http://localhost:3000> and pick a researcher.
-
-**Live mode (real TideCloak).** TideCloak must run on **Linux with Docker**: Tide's native library for Windows is a stub. We ran the official `tideorg/tidecloak-dev` image in a GitHub Codespace and forwarded port 8080 to `localhost`.
-
-1. Copy `app/.env.example` to `app/.env` and set `KC_BOOTSTRAP_ADMIN_PASSWORD`, `TIDE_LICENSE_EMAIL` (an address you control) and `TIDE_TERMS_ACCEPTED=yes`. Set the last one only after reading [tide.org/legal](https://tide.org/legal).
+1. Copy `app/.env.example` to `app/.env` (it already sets `DEMO_RED_TEAM=1` for the Operator view) and set `KC_BOOTSTRAP_ADMIN_PASSWORD`, `TIDE_LICENSE_EMAIL` (an address you control) and `TIDE_TERMS_ACCEPTED=yes`. Set the last one only after reading [tide.org/legal](https://tide.org/legal).
 2. On the Docker host, run `bash scripts/codespace-tidecloak.sh`. It starts `tideorg/tidecloak-dev` on port 8080 and runs `app/scripts/init-tidecloak.sh`, which creates realm `consortium` with the room groups and reader roles, licenses it, enables IGA and prints an invite link. Open the link to enrol the first admin in the Tide enclave.
 3. If TideCloak runs in a Codespace, forward the ports before opening that invite link: `gh codespace ports forward 8080:8080 3000:3000`.
 4. `cd app && npm install && npm run dev`, then open <http://localhost:3000>.
@@ -121,8 +107,7 @@ Our venue network intercepted TLS, so `registry.npmjs.org` failed; `npm install 
 
 ## Limitations
 
-- **Walkthrough mode is a simulation.** It enforces nothing cryptographically: the key is derived locally and the checks run in the browser. It accepts persona tokens (`Bearer wt.<persona>`) without any signature, so `NEXT_PUBLIC_WALKTHROUGH` must never be set in a real deployment.
-- **Live mode was verified only up to account enrolment on 22 October**, because Tide's public nodes were partly down. The flows after it were recorded in walkthrough mode.
+- **Live login not verified end to end**, because Tide account creation failed on 22 Oct (public nodes partly down). The live setup was verified up to account enrolment; the flows after it were recorded on branch `walkthrough-demo`.
 - **Institution is self-asserted.** The display name and institution in a user's profile are typed by the user, not attested. Group membership and roles, which decide access, come from the signed token.
 - **Metadata is visible to the host.** The store holds each post's author name and institution, room, type (finding, dataset or question), time and ciphertext size, plus profiles, join requests and an audit log; never the content.
 - **Whoever serves the JavaScript is trusted.** A malicious host could ship code that exfiltrates plaintext after it is decrypted in the browser.

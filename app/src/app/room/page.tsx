@@ -72,7 +72,7 @@ function RoomView({ id }: { id: string }) {
 
   const join = () => run("Recording your request...", async () => {
     await api("/api/join", { method: "POST", body: JSON.stringify({ room: id }) });
-    return "Request recorded. An institution admin must propose your admission, and 2 of 3 institutions must sign it in their Tide enclaves.";
+    return "Request recorded. An institution admin must propose your admission, and a quorum of institution admins must sign it in their Tide enclaves.";
   });
 
   // Realm admin, once per room and policy. Each opens the Tide enclave pop-up, so each is its own click.
@@ -88,7 +88,7 @@ function RoomView({ id }: { id: string }) {
     await load();
     return kind === "write"
       ? "Deposit policy signed: the Tide network now lets room members encrypt into this room."
-      : `Reading policy signed: only holders of ${readerRole(id)} can decrypt, and that takes a 2-of-3 treaty.`;
+      : `Reading policy signed: only holders of ${readerRole(id)} can decrypt, and that takes a quorum-signed change request.`;
   });
 
   const deposit = () => run("Encrypting in your browser via the Tide network...", async () => {
@@ -126,7 +126,7 @@ function RoomView({ id }: { id: string }) {
         <div className="stack">
           <h2 className="row"><Scales {...ic} /> The treaty</h2>
           <p className="small muted">Signatories: {room.institutions.join(", ")}</p>
-          <p className="small">Unseal the room or admit a member: <strong>2 of 3 institutions</strong> sign in their own Tide enclaves.</p>
+          <p className="small">Unseal the room or admit a member: <strong>a quorum of institution admins</strong> signs, each in their own Tide enclave (2 of 3 with one admin per institution).</p>
         </div>
         <div className="row">
           <span className={`chip ${state === "member" ? "ok" : ""}`}>{state === "member" ? "Member" : state === "outsider" ? "Not a member" : "..."}</span>

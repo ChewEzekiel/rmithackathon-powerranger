@@ -52,7 +52,7 @@ function Governance() {
     try {
       const r = await fn();
       setOut(r.status === 202
-        ? `${label}: change request filed (HTTP 202). It takes effect only when 2 of 3 institution admins sign it.`
+        ? `${label}: change request filed (HTTP 202). It takes effect only when a quorum of institution admins sign it.`
         : `${label}: TideCloak answered HTTP ${r.status} ${JSON.stringify(r.body)}`);
     } catch (e) { setOut(`${label} failed: ${(e as Error).message}`); }
     load();

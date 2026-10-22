@@ -2,10 +2,9 @@
 
 Step-by-step setup for the Treaty Room prototype (Team Sunway PowerRanger, RMIT x Tide UNLOCKED Challenge 2). Commands are copy-pasteable in a bash shell unless marked PowerShell.
 
-There are two ways to run it:
+`main` is Tide-only: every page and API route requires a Tide-issued, DPoP-bound token, so you sign in with a real Tide account through TideCloak. There is no simulated sign-in on `main`.
 
-- **Option A: live mode** (the default). Real TideCloak and the real Tide network. Needs a Linux host with Docker and a Tide account per admin.
-- **Option B: walkthrough mode** (no Tide account needed). The same app with the Tide SDK boundary replaced by a simulation. This is what the demo video was recorded in, because on 22 October Tide's public ORK nodes ork2, ork3 and ork7 returned HTTP 503 and new Tide accounts could not be enrolled. It is a simulation, not security: never set `NEXT_PUBLIC_WALKTHROUGH` in a real deployment.
+The demo video was recorded from a separate branch, `walkthrough-demo`, which replaces the Tide SDK boundary with a simulation, because on 22 October new Tide accounts could not be created (Tide-side: ORK nodes returned HTTP 503, then account creation failed with licence user-cap and `SetCMK` errors). The video says so. See [Reproducing the demo recording](#reproducing-the-demo-recording).
 
 ## Get the code
 
@@ -16,44 +15,7 @@ cd treaty-room
 
 If `npm install` fails with a TLS or certificate error on `registry.npmjs.org` (our venue network intercepted TLS), use `npm install --registry=https://registry.yarnpkg.com` wherever this guide says `npm install`.
 
-## Option B: walkthrough mode (no Tide account needed)
-
-Needs only Node.js 20.9 or later and npm. Works on Windows, macOS and Linux.
-
-```bash
-cp app/.env.example app/.env        # already sets DEMO_RED_TEAM=1, which enables the Operator view
-```
-
-The pages import `app/data/tidecloak.json` at build time. It is gitignored, so on a fresh clone create a placeholder (skip this if you already have a real one from Option A):
-
-```bash
-[ -f app/data/tidecloak.json ] || echo '{"realm":"consortium","auth-server-url":"http://localhost:8080","resource":"treaty-room","public-client":true,"jwk":{"keys":[]},"vendorId":"walkthrough"}' > app/data/tidecloak.json
-```
-
-Then start the app in walkthrough mode:
-
-```bash
-cd app
-npm install
-NEXT_PUBLIC_WALKTHROUGH=1 npm run dev
-```
-
-PowerShell equivalent of the last line: `$env:NEXT_PUBLIC_WALKTHROUGH="1"; npm run dev`
-
-Open <http://localhost:3000>. A banner on every page says walkthrough mode is on. **Sign in with Tide** takes you to `/walkthrough`, where you pick a synthetic researcher:
-
-| Persona | Institution | Role |
-|---|---|---|
-| Dr Mei Lee | Northbridge University | Institution admin, Alzheimer's room |
-| Dr Daniel Chen | Helix Therapeutics | Institution admin, both rooms |
-| Dr Aisha Rahman | St Aurelia Hospital | Institution admin, Alzheimer's room |
-| Dr Nurul Huda | Sunway Institute | Researcher, dengue room only |
-
-Switch researcher from the banner. Each admin gets a simulated **Tide enclave** button (bottom right, above the banner) listing pending change requests to sign; the threshold is 2, shown as the quorum. Then follow the [demo walkthrough](#demo-walkthrough) below, using the enclave panel wherever it says "approve in their Tide enclave".
-
-What is simulated: sign-in (persona tokens), the Tide network (the same `RelationshipAttestation:1` checks and refusal messages, run in the browser), encryption (AES-GCM with a locally derived key) and TideCloak IGA (state in `app/data/walkthrough.json`). To reset, stop the server and delete `app/data/walkthrough.json` and `app/data/store.json`.
-
-## Option A: live mode (real TideCloak)
+## Running it: live mode (real TideCloak)
 
 ### What you need
 
@@ -65,7 +27,7 @@ What is simulated: sign-in (persona tokens), the Tide network (the same `Relatio
 | GitHub CLI (`gh`) | Only if TideCloak runs in a Codespace: forwards its ports to your `localhost`. |
 | A browser that allows pop-ups from `http://localhost:3000` | Tide opens its enclave in a pop-up for sign-in and every signature. |
 | A real email address you control | The realm is licensed to it under Tide's terms. |
-| Tide's public ORK network up | Enrolling a new Tide account needs every selected ORK to answer. |
+| Tide's public ORK network up and accepting new accounts | Enrolling a new Tide account needs every selected ORK to answer, and Tide must allow the account to be created (see [Troubleshooting](#troubleshooting)). |
 
 ### 1. Open a Codespace (optional)
 
@@ -164,9 +126,9 @@ For each extra admin:
 
 Once the realm is in multi-admin mode, each of these is a change request. Approve it from an existing admin's browser: **Governance** page, then **Sign in Tide console** (<http://localhost:8080/realms/consortium/tide-console/>). Screen names may differ slightly between TideCloak dev-image versions.
 
-## Demo walkthrough
+## Demo flow
 
-The same steps work in both modes. In walkthrough mode, "sign in" means picking a persona and "approve in their Tide enclave" means the simulated enclave panel.
+These steps run on `main` with real Tide sign-in, after steps 1 to 7 above.
 
 1. **Deposit.** Each admin signs in, opens the Alzheimer's room, clicks **Load my synthetic example** (or writes a finding) and **Encrypt & deposit**. The post is encrypted in their browser; the server stores ciphertext only.
 2. **Sealed.** **Open** / **Open all** is refused by the Tide network: no one holds the room's reader role yet, depositors included.
@@ -176,19 +138,63 @@ The same steps work in both modes. In walkthrough mode, "sign in" means picking 
 6. **Joining (optional).** A non-member clicks **Request to join**; an admin clicks **Propose admission** on **Governance**, and it needs the quorum like any other change.
 7. **Operator view.** Open **Operator view** ("What the platform sees"): the raw database file (ciphertext, signed policies, metadata). **Try to decrypt with the stolen data** shows the Tide network refusing.
 
+## Reproducing the demo recording
+
+The demo video was recorded from branch `walkthrough-demo`: the same app with the Tide SDK boundary replaced by a simulation. It is a simulation, not security: never deploy that branch or set `NEXT_PUBLIC_WALKTHROUGH` in a real deployment. Use it only to reproduce the recording; `main` is the submission.
+
+Needs only Node.js 20.9 or later and npm. Works on Windows, macOS and Linux.
+
+```bash
+git checkout walkthrough-demo
+cp app/.env.example app/.env        # skip if you already have one; sets DEMO_RED_TEAM=1 (Operator view)
+```
+
+The pages import `app/data/tidecloak.json` at build time. It is gitignored, so on a fresh clone create a placeholder (skip this if you already have a real one from live mode):
+
+```bash
+[ -f app/data/tidecloak.json ] || echo '{"realm":"consortium","auth-server-url":"http://localhost:8080","resource":"treaty-room","public-client":true,"jwk":{"keys":[]},"vendorId":"walkthrough"}' > app/data/tidecloak.json
+```
+
+Then start the app in walkthrough mode:
+
+```bash
+cd app
+npm install
+NEXT_PUBLIC_WALKTHROUGH=1 npm run dev
+```
+
+PowerShell equivalent of the last line: `$env:NEXT_PUBLIC_WALKTHROUGH="1"; npm run dev`
+
+Open <http://localhost:3000>. A banner on every page says walkthrough mode is on. **Sign in with Tide** takes you to `/walkthrough`, where you pick a synthetic researcher:
+
+| Persona | Institution | Role |
+|---|---|---|
+| Dr Mei Lee | Northbridge University | Institution admin, Alzheimer's room |
+| Dr Daniel Chen | Helix Therapeutics | Institution admin, both rooms |
+| Dr Aisha Rahman | St Aurelia Hospital | Institution admin, Alzheimer's room |
+| Dr Nurul Huda | Sunway Institute | Researcher, dengue room only |
+
+Switch researcher from the banner. Each admin gets a simulated **Tide enclave** button (bottom right, above the banner) listing pending change requests to sign; the threshold is 2, shown as the quorum. Then follow the [demo flow](#demo-flow), where "sign in" means picking a persona and "approve in their Tide enclave" means the simulated enclave panel.
+
+What is simulated: sign-in (persona tokens), the Tide network (the same `RelationshipAttestation:1` checks and refusal messages, run in the browser), encryption (AES-GCM with a locally derived key) and TideCloak IGA (state in `app/data/walkthrough.json`). To reset, stop the server and delete `app/data/walkthrough.json` and `app/data/store.json`.
+
+If `/walkthrough` says "Walkthrough mode is off", start the dev server with `NEXT_PUBLIC_WALKTHROUGH=1` (it is read at build time, so restart after changing it).
+
+To go back, stop the server, run `git checkout main`, and start it again with plain `npm run dev`. The placeholder `app/data/tidecloak.json` is not a real adapter config: replace it with the real one from step 3 before signing in on `main`.
+
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
 | Nothing happens on **Sign in with Tide**, a **Sign ... policy** button or an approval | The Tide enclave pop-up was blocked. Allow pop-ups for `http://localhost:3000` and click again. |
-| Tide account enrolment fails or hangs; ORK URLs return HTTP 503 | Tide's public ORK network is partly down; enrolment needs every selected ORK. Wait and retry, or use Option B to show the flows. |
+| Tide account enrolment fails or hangs; ORK URLs return HTTP 503 | Tide's public ORK network is partly down; enrolment needs every selected ORK. Wait and retry. To show the flows meanwhile, see [Reproducing the demo recording](#reproducing-the-demo-recording). |
+| Tide account creation fails (max user created / `SetCMK` errors) | Tide-side (licence user cap or ORK problems); nothing in this repo or `app/.env` fixes it. Contact Tide support. |
 | An approval committed but the app still says you lack access | Your token was issued before the change. Click **Refresh access** (or sign out and in) to get a fresh token with the new group or role. |
 | `npm install` fails with a TLS or certificate error | `npm install --registry=https://registry.yarnpkg.com` |
-| Decrypt or encrypt fails with `TIDE-TIDEJS-NET-THRESHOLD_FAILURE` ("Could not reach enough VVK ORKs") | Usually the contract refusing you, not an outage: the room is still sealed, you are not in its group, or your token is stale. The contract's reason is in the error's `cause`. Do not retry in a loop. Walkthrough mode shows the same message with "(walkthrough simulation)". |
+| Decrypt or encrypt fails with `TIDE-TIDEJS-NET-THRESHOLD_FAILURE` ("Could not reach enough VVK ORKs") | Usually the contract refusing you, not an outage: the room is still sealed, you are not in its group, or your token is stale. The contract's reason is in the error's `cause`. Do not retry in a loop. |
 | Init script exits asking for `KC_BOOTSTRAP_ADMIN_PASSWORD`, licence email or terms | Fill `app/.env` as in step 2. `TIDE_TERMS_ACCEPTED` must be exactly `yes`. |
 | Init reports `NEED_PAYMENT` | The realm was not licensed. Check `TIDE_LICENSE_EMAIL` is a real address and run the script again. |
-| App fails to build: cannot find `data/tidecloak.json` | Live mode: the realm has not been bootstrapped, or you are running the app on a different machine; run step 3 or copy the file as in step 5. Walkthrough mode: create the placeholder shown in Option B. |
-| `/walkthrough` says "Walkthrough mode is off" | Start the dev server with `NEXT_PUBLIC_WALKTHROUGH=1` (it is read at build time, so restart after changing it). |
+| App fails to build: cannot find `data/tidecloak.json` | The realm has not been bootstrapped, or you are running the app on a different machine; run step 3 or copy the file as in step 5. On branch `walkthrough-demo`: create the placeholder shown in [Reproducing the demo recording](#reproducing-the-demo-recording). |
 | Sign-in redirects to `localhost:8080` and fails to load | Port 8080 is not forwarded. Re-run `gh codespace ports forward 8080:8080 3000:3000`. |
 | TideCloak will not start on Windows | Expected: run it in Docker on Linux (Codespace, WSL2 or a VM). |
-| You want a clean slate | Walkthrough: delete `app/data/walkthrough.json` and `app/data/store.json`. Live, on the Docker host: `docker rm -f tidecloak`, then delete `app/data/h2`, `app/data/store.json` and `app/data/tidecloak.json`, and repeat from step 3. This wipes the realm and all demo posts. |
+| You want a clean slate | On the Docker host: `docker rm -f tidecloak`, then delete `app/data/h2`, `app/data/store.json` and `app/data/tidecloak.json`, and repeat from step 3. This wipes the realm and all demo posts. |

@@ -60,7 +60,7 @@ meta.add_run("RMIT x Tide UNLOCKED, Challenge 2\n")
 meta.add_run("Repository: ").bold = True
 meta.add_run("https://github.com/ChewEzekiel/treaty-room    ")
 meta.add_run("Demo video: ").bold = True
-meta.add_run("demo/video.mp4 (recorded in walkthrough mode, see below)")
+meta.add_run("demo/video.mp4 (recorded from branch walkthrough-demo with simulated Tide calls, see below)")
 
 h("Problem")
 p(
@@ -125,7 +125,7 @@ p(
     "Without TideCloak: ",
 )
 
-h("Demo walkthrough")
+h("Demo flow")
 bullets([
     "Deposit.| Admins from the three institutions sign in, click \"Load my synthetic example\" and \"Encrypt & "
     "deposit\". The server stores ciphertext only.",
@@ -140,23 +140,28 @@ bullets([
     "decrypt it.",
 ], style="List Number")
 
-h("Walkthrough mode and the demo video")
+h("Tide login and the demo video")
 p(
-    "On 22 October, Tide's public ORK network had nodes down (ork2, ork3 and ork7 returned HTTP 503). Creating a new "
-    "Tide account needs every selected ORK, so nobody could enrol, and the live flow stops before any policy can be "
-    "signed. Our live setup worked up to that step: TideCloak running, realm created and licensed, IGA enabled and "
-    "the adapter config exported. The steps after enrolment could not be run against the live network that day."
+    "The app on main requires Tide login. There is no simulated sign-in, enclave or encryption: users sign in through "
+    "TideCloak with a Tide account, admins sign policies and change requests in their own Tide enclave, and every "
+    "encrypt and decrypt is checked by Tide's ORK nodes.",
+    "Main is Tide only. ",
 )
 p(
-    "So the screens and flows could still be shown, we added a walkthrough mode. Running "
-    "NEXT_PUBLIC_WALKTHROUGH=1 npm run dev makes webpack swap the Tide SDK boundary (@tidecloak/nextjs, "
-    "@tidecloak/js and lib/tide/relationship) for a simulation: persona sign-in (Dr Mei Lee, Northbridge admin; "
-    "Dr Daniel Chen, Helix admin; Dr Aisha Rahman, St Aurelia admin; Dr Nurul Huda, Sunway researcher), a "
-    "simulated enclave panel for co-signing with a threshold of 2 shown as the quorum, the same "
-    "RelationshipAttestation checks and refusal messages, and AES-GCM as a stand-in for Tide encryption. A banner "
-    "on every page discloses it. The demo video was recorded in walkthrough mode; it does not show live Tide. "
-    "Live mode, the default, is unchanged and uses real TideCloak.",
+    "On 22 October, Tide's public ORK network had nodes down (ork2, ork3 and ork7 returned HTTP 503), and creating a "
+    "new Tide account needs every selected ORK. After ork2 recovered, new accounts were refused by the free-tier cap "
+    "(TIDE-ORK-VOUCHER-SUBSCRIPTION_EXCEEDED_CONCURRENT), so nobody could enrol or complete a login. To still show "
+    "the screens and flows, the demo video was recorded from a separate branch, walkthrough-demo, where the Tide SDK "
+    "calls (sign-in, enclave co-signing, encryption) are simulated with synthetic personas and a banner on every page "
+    "says so. The video does not show live Tide, and the simulation is not part of main.",
     "Honest disclosure: ",
+)
+p(
+    "TideCloak on the official image in a GitHub Codespace; realm consortium licensed with a Tide vendor key; IGA in "
+    "Tide mode, so governed admin writes are answered with HTTP 202 change requests (266 approved, including the two "
+    "per-room reader roles); and the Tide adapter config exported for the app. The read-back realm state, logs and "
+    "outage timeline are in docs/evidence/live-tidecloak.md.",
+    "What ran live: ",
 )
 
 h("Impact")
@@ -170,9 +175,10 @@ p(
 
 h("Limitations")
 bullets([
-    "Walkthrough mode is a simulation with no cryptographic enforcement. It accepts unsigned persona tokens, so "
-    "NEXT_PUBLIC_WALKTHROUGH must never be set in a real deployment.",
-    "Live mode was verified only up to account enrolment on 22 October, because Tide's public nodes were partly down.",
+    "No Tide account could be created on 22 October, so Tide login, enclave signing of the room policies and "
+    "RelationshipAttestation:1 encrypt and decrypt were not run live. The video shows them simulated.",
+    "Main has no fallback: using the app needs an enrolled Tide account.",
+    "Branch walkthrough-demo is a recording build with no cryptographic enforcement; it must never be deployed.",
     "The institution in a user's profile is self-asserted; access decisions use the signed groups and roles.",
     "Metadata (author name and institution, room, post type, time and size) is visible to the host.",
     "Whoever serves the JavaScript is trusted: a malicious host could ship code that exfiltrates plaintext after "
@@ -186,16 +192,15 @@ bullets([
 h("Running it (summary)")
 p("Full steps and troubleshooting are in RUN_INSTRUCTIONS.md (also supplied as a separate deliverable).")
 bullets([
-    "Walkthrough mode (no Tide account):| copy app/.env.example to app/.env, create a placeholder "
-    "app/data/tidecloak.json if missing (command in RUN_INSTRUCTIONS.md), then cd app && npm install && "
-    "NEXT_PUBLIC_WALKTHROUGH=1 npm run dev and open http://localhost:3000.",
-    "Live mode:| TideCloak must run on Linux with Docker (Tide's Windows native library is a stub); we used a GitHub "
-    "Codespace. Set KC_BOOTSTRAP_ADMIN_PASSWORD, TIDE_LICENSE_EMAIL and TIDE_TERMS_ACCEPTED=yes in app/.env (the "
-    "last only after reading https://tide.org/legal), run bash scripts/codespace-tidecloak.sh, forward ports with "
-    "gh codespace ports forward 8080:8080 3000:3000, enrol the first admin from the printed invite link, then "
-    "cd app && npm install && npm run dev.",
+    "TideCloak:| it must run on Linux with Docker (Tide's Windows native library is a stub); we used a GitHub "
+    "Codespace. Copy app/.env.example to app/.env and set KC_BOOTSTRAP_ADMIN_PASSWORD, TIDE_LICENSE_EMAIL and "
+    "TIDE_TERMS_ACCEPTED=yes (the last only after reading https://tide.org/legal), run bash "
+    "scripts/codespace-tidecloak.sh and forward ports with gh codespace ports forward 8080:8080 3000:3000.",
+    "App:| enrol the first admin from the printed invite link, then cd app && npm install && npm run dev and open "
+    "http://localhost:3000. Sign-in always goes through Tide.",
     "Enrol three admins (one per institution) for a real 2-of-3 quorum; an admin signs each room's two policies once.",
-    "Our venue network intercepted TLS, so npm used --registry=https://registry.yarnpkg.com.",
+    "Our venue network intercepted TLS, so npm used --registry=https://registry.yarnpkg.com and the browser reached "
+    "Tide through a SOCKS proxy via the Codespace.",
 ])
 
 foot = doc.add_paragraph()

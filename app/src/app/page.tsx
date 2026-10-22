@@ -85,7 +85,7 @@ export default function HomePage() {
         <section className="bento" aria-label="What protects a room">
           <article className="card cell s7 reveal">
             <div className="cell-head"><span className="cell-icon"><LockKey {...ic} /></span><h3>Unreadable by the host</h3></div>
-            <p>Findings are encrypted in the researcher&apos;s browser. Our database holds ciphertext only; a breach or a curious engineer gets nothing.</p>
+            <p>Findings are encrypted in the researcher&apos;s browser. Our database holds their content as ciphertext only; a breach or a curious engineer learns who posted and when, never what.</p>
             <div className="cell-visual"><div className="cipher">{STORED_CIPHER}</div></div>
           </article>
 
