@@ -8,7 +8,11 @@ export async function tab(port, prefix) {
   await new Promise((r) => (ws.onopen = r));
   let id = 0; const pending = new Map();
   ws.onmessage = (m) => { const d = JSON.parse(m.data); if (d.id && pending.has(d.id)) { pending.get(d.id)(d); pending.delete(d.id); } };
-  const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
+  // A call can go unanswered when its page context dies mid-navigation: give up after 8 s instead of hanging.
+  const send = (method, params = {}) => new Promise((res) => {
+    const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params }));
+    setTimeout(() => { if (pending.delete(i)) res({}); }, 8000);
+  });
   const evaluate = async (expr) => (await send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true })).result?.result?.value;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await send("Page.bringToFront");

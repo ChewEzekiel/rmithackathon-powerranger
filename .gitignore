@@ -20,3 +20,11 @@ build.log
 npm-install.log
 init.log
 tidecloak.log
+video/rec/*.frames/
+video/rec/*.stop
+video/shots/
+video/rec-run.log
+video/blender/frames/
+video/blender/checks/
+video/blender/test_*
+video/blender/log_*

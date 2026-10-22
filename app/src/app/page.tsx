@@ -63,9 +63,9 @@ export default function HomePage() {
                 <div className="who-line">
                   <div className="row">
                     <span className="chip">finding</span>
-                    <strong>Dr. Aisha Rahman</strong>
+                    <strong>Dr Aisha Rahman</strong>
                   </div>
-                  <span className="muted small">{room.institutions[0]}</span>
+                  <span className="muted small">{room.institutions[2]}</span>
                 </div>
                 <span className="chip sealed"><LockKey size={13} weight="regular" /> Sealed</span>
               </div>

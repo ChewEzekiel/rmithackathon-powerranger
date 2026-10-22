@@ -7,14 +7,15 @@ import { tab } from "./drive.mjs";
 const DRY = process.argv.includes("--dry");
 const APP = "http://localhost:3000";
 mkdirSync("video/rec", { recursive: true });
-const t = await tab(9222, APP);
+const PORT = process.env.CDP_PORT || "9222";
+const t = await tab(+PORT, APP);
 
 async function segment(name, fn) {
   let rec;
   const out = `video/rec/${name}.mp4`;
   if (!DRY) {
     rmSync(`${out}.stop`, { force: true });
-    rec = spawn(process.execPath, ["video/record.mjs", "9222", APP, out, "120"], { stdio: ["ignore", "pipe", "inherit"] });
+    rec = spawn(process.execPath, ["video/record.mjs", PORT, APP, out, "120"], { stdio: ["ignore", "pipe", "inherit"] });
     await new Promise((r) => rec.stdout.once("data", r)); // recorder attached
     await t.sleep(600);
   }

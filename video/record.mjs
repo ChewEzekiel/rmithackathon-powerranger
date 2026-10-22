@@ -3,9 +3,10 @@
 // usage: node video/record.mjs <port> <urlPrefix> <out.mp4> [maxSeconds=300]
 import { mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
-const [port, prefix, out, maxSeconds = "300"] = process.argv.slice(2);
+const [port, prefix, outArg, maxSeconds = "300"] = process.argv.slice(2);
+const out = resolve(outArg); // absolute: ffmpeg concat resolves entries relative to the list file
 const frames = `${out}.frames`;
 rmSync(frames, { recursive: true, force: true });
 mkdirSync(frames, { recursive: true });
