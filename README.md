@@ -22,7 +22,7 @@ Failed and unpublished results stay in drawers: pooling them means trusting a ho
 
 <!-- Who would benefit, and how would their lives or work improve? Give a concrete example of why this matters. -->
 
-Northbridge University, Helix Therapeutics and St Aurelia Hospital pool Alzheimer's p-tau217 blood-test results, dead ends included, so nobody funds a cohort another lab saw fail. In Malaysia, Sunway Institute, Helix and KL General Hospital pool dengue vaccine safety signals, protecting trial volunteers sooner.
+Northbridge University, Helix Therapeutics and St Aurelia Hospital pool Alzheimer's blood-test results, dead ends included, so nobody funds a cohort another lab saw fail. In Malaysia, Sunway Institute, Helix and KL General Hospital pool dengue vaccine safety signals, protecting volunteers sooner.
 
 ### 4. Why TideCloak matters
 
